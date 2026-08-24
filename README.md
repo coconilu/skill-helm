@@ -1,4 +1,4 @@
-# Skill Hub
+# Skill Helm
 
 面向 Codex、Kimi Code 与其他支持 Agent Skills 的客户端的、Agent 无关的 Skill 管理平台。
 
@@ -8,13 +8,13 @@
 
 常用多个 coding agent（如 Codex、Kimi Code）的用户，Skill 分散在各 Agent 自己的目录里；随着数量增长，会频繁需要新增、维护、删除、禁用、分类、分组。已有方案大多是「外部工具管 Skill」——独立的桌面应用、CLI 包管理器或云端注册表——Skill 的创建和维护要离开对话上下文。
 
-Skill Hub 换一个方向：**平台本身作为一个 Meta-Skill 注册进各 Agent**，在对话里直接提供新增、更新 Skill 的元能力；同时用一个与 Agent 无关的核心集中维护 Skill 的概念、分类与状态。
+Skill Helm 换一个方向：**平台本身作为一个 Meta-Skill 注册进各 Agent**，在对话里直接提供新增、更新 Skill 的元能力；同时用一个与 Agent 无关的核心集中维护 Skill 的概念、分类与状态。
 
 ```mermaid
 flowchart LR
     A["Codex / Kimi Code / 其他 Agent"]
     M["Meta-Skill（薄适配层）"]
-    Core["Skill Hub Core"]
+    Core["Skill Helm Core"]
     Reg["概念注册表<br/>分类 / 分组 / 状态"]
     Store["本地 Skill 库存<br/>（用户级作用域）"]
 
@@ -35,7 +35,7 @@ flowchart LR
 
 ## 与现有方案的区别
 
-| 项目 | 形态 | 与 Skill Hub 的差异 |
+| 项目 | 形态 | 与 Skill Helm 的差异 |
 |---|---|---|
 | [mode-io/skill-manager](https://github.com/mode-io/skill-manager) | 独立本地 app | 外部管理器，无 Agent 内驻 Meta-Skill；不支持 Kimi Code |
 | [yibie/skills-manager](https://github.com/yibie/skills-manager) | macOS app + TUI | 外部管理器，无概念注册表 |
