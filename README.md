@@ -43,14 +43,39 @@ flowchart LR
 | [Portkey Skills Registry](https://portkey.ai/blog/skills-registry/) | 云端团队注册表 | 面向团队分发，非本地个人管理 |
 | 各类 Marketplace（LobeHub 等） | 发现与分发 | 不做本地生命周期管理 |
 
-## 仓库结构（规划）
+## 快速开始
+
+需要 Node.js 22+ 与 pnpm 10+：
+
+```powershell
+pnpm install
+pnpm build
+pnpm test
+# 初始化库存（~/.skill-helm），并把 meta-skill 启用到所有已检测到的 Agent
+node packages/cli/dist/cli.js init
+# 把 skill-helm 命令挂到 PATH（可选）
+pnpm --filter skill-helm link --global
+```
+
+常用命令（全部支持 `--json`）：
+
+```powershell
+skill-helm list                          # 查看库存
+skill-helm create my-skill --description "什么时候用这个 skill"
+skill-helm adopt ~/.codex/skills/xxx     # 收编散落在 Agent 目录里的 Skill
+skill-helm enable my-skill --to codex,kimi-code
+skill-helm disable my-skill --from codex # 只摘联接，不删文件
+skill-helm doctor                        # 一致性检查
+```
+
+## 仓库结构
 
 ```text
-packages/core/            Skill 模型、概念注册表、分类/分组/状态逻辑
-packages/cli/             面向用户和脚本的 CLI
+packages/core/            Skill 模型、库存、注册表、启用/禁用、lint、doctor
+packages/cli/             面向用户和 Agent 的 CLI（--json 输出）
 meta-skill/               注册进各 Agent 的 Meta-Skill 定义
-adapters/codex/           Codex 薄适配层
-adapters/kimi-code/       Kimi Code 薄适配层
+adapters/*.json           Agent 薄适配层（只有 skills 目录声明）
+concepts/                 概念注册表（生成 Skill 的事实来源）
 docs/                     产品与架构文档
 ```
 

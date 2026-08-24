@@ -3,3 +3,7 @@ dist/
 .DS_Store
 Thumbs.db
 *.log
+
+# 防止 tsc 异常时把产物漏进 src
+packages/*/src/*.js
+packages/*/src/*.d.ts

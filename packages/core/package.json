@@ -1,0 +1,21 @@
+{
+  "name": "@skill-helm/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Skill Helm 核心：Skill 模型、统一库存、注册表、启用/禁用与概念注册表",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}
