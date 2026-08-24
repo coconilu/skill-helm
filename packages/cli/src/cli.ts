@@ -20,6 +20,9 @@ const HELP = `skill-helm — Agent 无关的 Skill 管理
   categorize <name> --set a,b
   group <name> --set g1,g2
   concepts list | show <topic> | sync
+  history init <path> | list [--name n] [--limit k] | status
+  search <query> [--limit n]               在 GitHub 上按描述搜索 Skill 仓库
+  install <owner/repo> [--skill name|all]  从 GitHub 仓库安装 Skill 进库存
   lint <name>
   doctor [--fix]
 
@@ -62,6 +65,16 @@ function printTargets(results: core.TargetResult[]): boolean {
     process.stdout.write(`${mark} ${r.adapter}${r.message ? ` — ${r.message}` : ""}\n`);
   }
   return hasError;
+}
+
+/** 异步命令（search/install）的错误出口：与同步路径一致，--json 时 stdout 输出 {"error": ...}。 */
+function runAsync(json: boolean, task: () => Promise<void>): void {
+  task().catch((err) => {
+    const message = err instanceof Error ? err.message : String(err);
+    if (json) printJson({ error: message });
+    else process.stderr.write(`error: ${message}\n`);
+    process.exit(1);
+  });
 }
 
 function main(argv: string[]): void {
@@ -244,6 +257,88 @@ function main(argv: string[]): void {
         } else {
           throw new Error(`未知 concepts 子命令: ${sub}（支持 list / show / sync）`);
         }
+        return;
+      }
+      case "history": {
+        const { values, positionals } = parse(rest, {
+          name: { type: "string" },
+          limit: { type: "string" },
+        });
+        const sub = positionals[0] ?? "list";
+        if (sub === "init") {
+          const { path: p } = core.initHistory(need(positionals[1], "<path>"));
+          if (values.json) printJson({ path: p });
+          else process.stdout.write(`历史项目已配置: ${p}（之后的变更会追加到 events.ndjson）\n`);
+        } else if (sub === "status") {
+          const status = core.historyStatus();
+          if (values.json) printJson(status);
+          else if (!status.enabled) process.stdout.write("未启用（history init <path> 可配置一个空项目来记录历史）\n");
+          else process.stdout.write(`已启用: ${status.path}，共 ${status.events} 条事件\n`);
+        } else if (sub === "list") {
+          const limitRaw = str(values.limit);
+          const events = core.listHistory({ name: str(values.name), limit: limitRaw ? Number(limitRaw) : undefined });
+          if (values.json) printJson(events);
+          else {
+            process.stdout.write(
+              table(
+                ["时间", "类型", "对象", "详情"],
+                events.map((e) => [e.time.slice(0, 19).replace("T", " "), e.type, e.name ?? "-", e.detail ? truncate(JSON.stringify(e.detail), 50) : "-"]),
+              ) + "\n",
+            );
+          }
+        } else {
+          throw new Error(`未知 history 子命令: ${sub}（支持 init / list / status）`);
+        }
+        return;
+      }
+      case "search": {
+        const { values, positionals } = parse(rest, { limit: { type: "string" } });
+        const query = need(positionals[0], "<query>");
+        const limitRaw = str(values.limit);
+        runAsync(Boolean(values.json), async () => {
+          const candidates = await core.searchGitHub(query, limitRaw ? Number(limitRaw) : 10);
+          if (values.json) printJson(candidates);
+          else if (candidates.length === 0) process.stdout.write("没有找到匹配的仓库\n");
+          else {
+            process.stdout.write(
+              table(
+                ["仓库", "星数", "简介"],
+                candidates.map((c) => [c.repo, String(c.stars), truncate(c.description, 60)]),
+              ) + "\n",
+            );
+            process.stdout.write("\n用 install <owner/repo> 安装；含多个 Skill 时会列出候选供选择\n");
+          }
+        });
+        return;
+      }
+      case "install": {
+        const { values, positionals } = parse(rest, { skill: { type: "string" } });
+        const repo = need(positionals[0], "<owner/repo>");
+        runAsync(Boolean(values.json), async () => {
+          const result = await core.installFromGitHub(repo, { skill: str(values.skill) });
+          if (result.candidates && result.candidates.length > 0) {
+            if (values.json) printJson({ candidates: result.candidates });
+            else {
+              process.stdout.write(
+                "该仓库包含多个 Skill：\n" +
+                  table(
+                    ["名称", "目录", "描述"],
+                    result.candidates.map((c) => [c.name, c.relativeDir, truncate(c.description, 50)]),
+                  ) +
+                  `\n请用 --skill <name> 指定一个，或 --skill all 全部安装\n`,
+              );
+            }
+            return;
+          }
+          if (values.json) printJson(result);
+          else {
+            for (const s of result.installed) {
+              const warn = s.issues.filter((i) => i.level !== "warning" || true).length;
+              process.stdout.write(`已安装 ${s.name}（在库存中，默认未启用；用 enable 试用）\n`);
+              if (warn > 0) process.stdout.write(`  lint 提醒: ${s.issues.map((i) => i.message).join("；")}\n`);
+            }
+          }
+        });
         return;
       }
       case "lint": {

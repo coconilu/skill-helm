@@ -1,5 +1,7 @@
 export * from "./types";
 export * from "./store";
+export * from "./config";
+export * from "./history";
 export * from "./registry";
 export * from "./frontmatter";
 export * from "./adapters";
@@ -8,3 +10,4 @@ export * from "./skills";
 export * from "./concepts";
 export * from "./lint";
 export * from "./operations";
+export * from "./market";

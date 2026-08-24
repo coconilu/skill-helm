@@ -142,12 +142,15 @@ docs/
 
 ## 9. 里程碑
 
-| 里程碑 | 内容 | 验收 |
-|---|---|---|
-| M0 | core + cli + 3 个 adapter + meta-skill + adopt | 收编本机现有 Skill；在 Codex/Kimi 对话中创建并启用一个新 Skill |
-| M1 | concepts 完善 + lint 规则 + doctor | 存量 Skill 全部通过 lint 或有明确豁免 |
-| M2 | 持久化接口（issue #1） | 可选接入空项目记录历史 |
-| M3 | 市场搜索（issue #2） | 按描述搜索、罗列、下载、试用 |
+| 里程碑 | 内容 | 验收 | 状态 |
+|---|---|---|---|
+| M0 | core + cli + 3 个 adapter + meta-skill + adopt | 收编本机现有 Skill；在 Codex/Kimi 对话中创建并启用一个新 Skill | ✅ 已完成 |
+| M1 | concepts 完善 + lint 规则 + doctor | 存量 Skill 全部通过 lint 或有明确豁免 | ✅ 已完成（2026-08-25） |
+| M2 | 持久化接口（issue #1） | 可选接入空项目记录历史 | ✅ 已完成（2026-08-25，history 命令） |
+| M3 | 市场搜索（issue #2） | 按描述搜索、罗列、下载、试用 | ✅ 已完成（2026-08-25，search/install 命令） |
+| M4 | Tauri 桌面端可视化管理 | 图形界面复用 packages/core，完成查看/启停/收编/搜索 | 规划中 |
+
+> 状态更新：M1–M3 于 2026-08-25 实现。M2 落地形式为 `history` 命令 + `~/.skill-helm/config.json` 可选配置；M3 落地形式为 `search`（GitHub 仓库搜索）+ `install`（tar.gz 下载扫描入库），试用 = enable / 清理 = disable + rm。
 
 ## 10. 风险与开放问题
 

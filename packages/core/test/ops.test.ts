@@ -135,6 +135,20 @@ describe("lint", () => {
     expect(issues.some((i) => i.rule === "naming" && i.level === "error")).toBe(true);
     expect(issues.some((i) => i.rule === "description" && i.level === "warning")).toBe(true);
   });
+
+  it("正文过短或没有章节标题时给出 body 警告", () => {
+    const dir = path.join(env.root, "thin-skill");
+    writeSkill(dir, "thin-skill"); // 正文只有一行标题
+    const issues = lintDir(dir);
+    expect(issues.some((i) => i.rule === "body" && i.message.includes("正文过短"))).toBe(true);
+  });
+
+  it("create 生成的模板通过 lint（无 error、无 body 警告）", () => {
+    createSkill({ name: "good-skill", description: "一个质量合格的 skill" });
+    const { issues } = getSkill("good-skill");
+    expect(issues.filter((i) => i.level === "error")).toEqual([]);
+    expect(issues.filter((i) => i.rule === "body")).toEqual([]);
+  });
 });
 
 describe("doctor", () => {

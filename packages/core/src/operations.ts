@@ -6,6 +6,7 @@ import { parseSkillMd, serializeSkillMd } from "./frontmatter";
 import { lintDir } from "./lint";
 import { createLink, inspectLink, linkPathFor, removeLink } from "./links";
 import { loadRegistry, updateRegistry } from "./registry";
+import { recordEvent } from "./history";
 import { assertValidName, createSkillPackage, readSkillInfo } from "./skills";
 import { ensureStore, paths, skillDir } from "./store";
 import type { DoctorIssue, LintIssue, SkillMeta, SkillSummary, TargetResult } from "./types";
@@ -100,6 +101,12 @@ export function createSkill(input: SkillInput): SkillSummary {
     };
     ensureTaxonomy(reg, input.categories ?? [], input.groups ?? []);
   });
+  recordEvent("create", input.name, {
+    description: input.description,
+    categories: input.categories ?? [],
+    groups: input.groups ?? [],
+    tags: input.tags ?? [],
+  });
   return getSkill(input.name).summary;
 }
 
@@ -121,6 +128,11 @@ export function updateSkill(name: string, patch: Partial<Omit<SkillInput, "name"
     if (patch.tags) m.tags = patch.tags;
     m.updatedAt = nowIso();
     ensureTaxonomy(r, m.categories, m.groups);
+  });
+  recordEvent("update", name, {
+    fields: Object.entries(patch)
+      .filter(([, v]) => v !== undefined)
+      .map(([k]) => k),
   });
   return getSkill(name).summary;
 }
@@ -160,6 +172,7 @@ export function adoptSkill(srcPath: string, opts: { name?: string; from?: string
   updateRegistry((reg) => {
     reg.skills[name] = { ...defaultMeta(), source: "adopted", enabledIn: actualEnabledIn(name, target) };
   });
+  recordEvent("adopt", name, { src, owner: owner?.id, conflicts: conflicts.map((c) => c.adapter) });
   return { summary: getSkill(name).summary, conflicts };
 }
 
@@ -186,6 +199,7 @@ export function enableSkill(name: string, adapterIds: string[]): { results: Targ
     m.enabledIn = actualEnabledIn(name, target);
     m.updatedAt = nowIso();
   });
+  recordEvent("enable", name, { to: results.filter((r) => r.state !== "error").map((r) => r.adapter) });
   return { results };
 }
 
@@ -212,6 +226,7 @@ export function disableSkill(name: string, adapterIds: string[]): { results: Tar
       m.updatedAt = nowIso();
     });
   }
+  recordEvent("disable", name, { from: results.filter((r) => r.state !== "error").map((r) => r.adapter) });
   return { results };
 }
 
@@ -222,6 +237,7 @@ export function removeSkill(name: string): void {
     updateRegistry((reg) => {
       delete reg.skills[name];
     });
+    recordEvent("remove", name, { registryOnly: true });
     return;
   }
   const active = loadAdapters().filter((a) => inspectLink(linkPathFor(a, name), dir) === "ok").map((a) => a.id);
@@ -232,6 +248,15 @@ export function removeSkill(name: string): void {
   updateRegistry((reg) => {
     delete reg.skills[name];
   });
+  recordEvent("remove", name);
+}
+
+export function registerInstalledSkill(name: string, source: string): SkillSummary {
+  updateRegistry((reg) => {
+    reg.skills[name] = { ...defaultMeta(), source };
+  });
+  recordEvent("install", name, { source });
+  return getSkill(name).summary;
 }
 
 export function doctor(fix: boolean): DoctorIssue[] {
@@ -329,5 +354,6 @@ export function initPlatform(): { concepts: string[]; enableResults: TargetResul
     m.updatedAt = nowIso();
   });
   const { results } = enableSkill("skill-helm", loadAdapters().map((a) => a.id));
+  recordEvent("init", "skill-helm", { concepts });
   return { concepts, enableResults: results };
 }

@@ -66,7 +66,18 @@ skill-helm adopt ~/.codex/skills/xxx     # 收编散落在 Agent 目录里的 Sk
 skill-helm enable my-skill --to codex,kimi-code
 skill-helm disable my-skill --from codex # 只摘联接，不删文件
 skill-helm doctor                        # 一致性检查
+skill-helm search "视频字幕"              # 按描述在 GitHub 搜 Skill 仓库
+skill-helm install owner/repo --skill xx # 安装进库存，enable 即试用
+skill-helm history init <空目录>          # 可选：开启变更历史记录
 ```
+
+## 里程碑
+
+- M0 ✅ 统一库存 + CLI + Meta-Skill 自举
+- M1 ✅ 概念注册表完善 + lint 规则
+- M2 ✅ 可选持久化接口（[issue #1](https://github.com/coconilu/skill-helm/issues/1)）
+- M3 ✅ 市场搜索（[issue #2](https://github.com/coconilu/skill-helm/issues/2)）
+- M4 ⬜ Tauri 桌面端可视化管理（规划中）
 
 ## 仓库结构
 
