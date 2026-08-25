@@ -2,6 +2,7 @@
 import { parseArgs } from "node:util";
 import * as core from "@skill-helm/core";
 import { printJson, table, truncate } from "./format";
+import { startServer } from "./server";
 
 const HELP = `skill-helm — Agent 无关的 Skill 管理
 
@@ -23,6 +24,7 @@ const HELP = `skill-helm — Agent 无关的 Skill 管理
   history init <path> | list [--name n] [--limit k] | status
   search <query> [--limit n]               在 GitHub 上按描述搜索 Skill 仓库
   install <owner/repo> [--skill name|all]  从 GitHub 仓库安装 Skill 进库存
+  serve [--port n]                         启动本地 HTTP API（桌面端/浏览器用，仅回环）
   lint <name>
   doctor [--fix]
 
@@ -338,6 +340,16 @@ function main(argv: string[]): void {
               if (warn > 0) process.stdout.write(`  lint 提醒: ${s.issues.map((i) => i.message).join("；")}\n`);
             }
           }
+        });
+        return;
+      }
+      case "serve": {
+        const { values } = parse(rest, { port: { type: "string" } });
+        const portRaw = str(values.port);
+        runAsync(Boolean(values.json), async () => {
+          const info = await startServer({ port: portRaw ? Number(portRaw) : undefined });
+          if (!values.json) process.stderr.write(`Skill Helm API 已启动: ${info.origin}（仅回环，Ctrl+C 停止）\n`);
+          else printJson(info);
         });
         return;
       }

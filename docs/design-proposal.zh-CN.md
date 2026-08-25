@@ -148,7 +148,14 @@ docs/
 | M1 | concepts 完善 + lint 规则 + doctor | 存量 Skill 全部通过 lint 或有明确豁免 | ✅ 已完成（2026-08-25） |
 | M2 | 持久化接口（issue #1） | 可选接入空项目记录历史 | ✅ 已完成（2026-08-25，history 命令） |
 | M3 | 市场搜索（issue #2） | 按描述搜索、罗列、下载、试用 | ✅ 已完成（2026-08-25，search/install 命令） |
-| M4 | Tauri 桌面端可视化管理 | 图形界面复用 packages/core，完成查看/启停/收编/搜索 | 规划中 |
+| M4 | Tauri 桌面端可视化管理 | 图形界面复用 packages/core，完成查看/启停/收编/搜索 | 🚧 实施中（2026-08-25，issue #3） |
+
+> M4 实现说明（2026-08-25）：
+>
+> - 架构沿用 token-plan-media-hub 已验证的模式：`skill-helm serve`（packages/cli，Node HTTP API，仅回环，启动写 `~/.skill-helm/server.json`）+ Tauri 壳（Rust 拉起 sidecar、读 origin、退出时按进程树清理）+ React 仪表盘（apps/desktop，Vite 构建）。
+> - 仪表盘三页：技能（筛选 / 启停 chip / 收编 / 详情抽屉含编辑、lint、删除）、市场（搜索 / 候选 / 安装）、历史（时间线或未启用引导）。
+> - API 契约：`/api/meta` `/api/skills` `/api/skills/:name[/update|/enable|/disable]` `/api/adopt` `/api/search` `/api/install` `/api/doctor` `/api/history` `/api/concepts`，与 CLI 共用同一 core。
+> - 非 Tauri 调试：`VITE_API_ORIGIN=http://127.0.0.1:<port> pnpm --dir apps/desktop dev`。
 
 > 状态更新：M1–M3 于 2026-08-25 实现。M2 落地形式为 `history` 命令 + `~/.skill-helm/config.json` 可选配置；M3 落地形式为 `search`（GitHub 仓库搜索）+ `install`（tar.gz 下载扫描入库），试用 = enable / 清理 = disable + rm。
 

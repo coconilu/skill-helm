@@ -57,6 +57,13 @@ node packages/cli/dist/cli.js init
 pnpm --dir packages/cli link --global
 ```
 
+桌面端（Tauri，需要 Rust 1.84+）：
+
+```powershell
+pnpm --dir apps/desktop desktop:dev     # 开发模式（自动拉起 skill-helm serve sidecar）
+pnpm --dir apps/desktop desktop:build   # 打包 NSIS 安装包
+```
+
 常用命令（全部支持 `--json`）：
 
 ```powershell
@@ -82,8 +89,9 @@ skill-helm history init <空目录>          # 可选：开启变更历史记录
 ## 仓库结构
 
 ```text
-packages/core/            Skill 模型、库存、注册表、启用/禁用、lint、doctor
-packages/cli/             面向用户和 Agent 的 CLI（--json 输出）
+packages/core/            Skill 模型、库存、注册表、启用/禁用、lint、doctor、市场
+packages/cli/             面向用户和 Agent 的 CLI（--json 输出），含 serve HTTP API
+apps/desktop/             Tauri 桌面端（React 仪表盘 + sidecar 生命周期）
 meta-skill/               注册进各 Agent 的 Meta-Skill 定义
 adapters/*.json           Agent 薄适配层（只有 skills 目录声明）
 concepts/                 概念注册表（生成 Skill 的事实来源）
