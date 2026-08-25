@@ -53,8 +53,8 @@ pnpm build
 pnpm test
 # 初始化库存（~/.skill-helm），并把 meta-skill 启用到所有已检测到的 Agent
 node packages/cli/dist/cli.js init
-# 把 skill-helm 命令挂到 PATH（可选）
-pnpm --filter skill-helm link --global
+# 把 skill-helm 命令挂到 PATH（推荐，meta-skill 依赖它）
+pnpm --dir packages/cli link --global
 ```
 
 常用命令（全部支持 `--json`）：
