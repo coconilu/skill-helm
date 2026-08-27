@@ -197,16 +197,13 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
   const categories = [...new Set(catalog.flatMap((s) => s.categories))];
   const groups = [...new Set(catalog.flatMap((s) => s.groups))];
   const groupCount = (g: string) => catalog.filter((s) => s.groups.includes(g)).length;
+  const statusCount = (st: "enabled" | "disabled") => catalog.filter((s) => s.status === st).length;
   const activeGroup = filter.group;
+  const activeStatus = filter.status;
 
   return (
     <div className="page">
       <div className="toolbar">
-        <select value={filter.status ?? ""} onChange={(e) => updateFilter({ ...filter, status: e.target.value || undefined })}>
-          <option value="">全部状态</option>
-          <option value="enabled">启用</option>
-          <option value="disabled">禁用</option>
-        </select>
         <span className="spacer" />
         <input
           className="adopt-input"
@@ -275,17 +272,34 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
           </table>
         </div>
         <aside className="group-panel">
-          <div className="panel-title">分组</div>
-          <button className={!activeGroup ? "group-item active" : "group-item"} onClick={() => updateFilter({ ...filter, group: undefined })}>
-            <span className="group-name">全部</span>
-            <span className="count">{catalog.length}</span>
-          </button>
-          {groups.map((g) => (
-            <button key={g} className={activeGroup === g ? "group-item active" : "group-item"} onClick={() => updateFilter({ ...filter, group: g })}>
-              <span className="group-name">{g}</span>
-              <span className="count">{groupCount(g)}</span>
+          <div className="panel-section">
+            <div className="panel-title">状态</div>
+            <button className={!activeStatus ? "group-item active" : "group-item"} onClick={() => updateFilter({ ...filter, status: undefined })}>
+              <span className="group-name">全部</span>
+              <span className="count">{catalog.length}</span>
             </button>
-          ))}
+            <button className={activeStatus === "enabled" ? "group-item active" : "group-item"} onClick={() => updateFilter({ ...filter, status: "enabled" })}>
+              <span className="group-name">启用</span>
+              <span className="count">{statusCount("enabled")}</span>
+            </button>
+            <button className={activeStatus === "disabled" ? "group-item active" : "group-item"} onClick={() => updateFilter({ ...filter, status: "disabled" })}>
+              <span className="group-name">禁用</span>
+              <span className="count">{statusCount("disabled")}</span>
+            </button>
+          </div>
+          <div className="panel-section">
+            <div className="panel-title">分组</div>
+            <button className={!activeGroup ? "group-item active" : "group-item"} onClick={() => updateFilter({ ...filter, group: undefined })}>
+              <span className="group-name">全部</span>
+              <span className="count">{catalog.length}</span>
+            </button>
+            {groups.map((g) => (
+              <button key={g} className={activeGroup === g ? "group-item active" : "group-item"} onClick={() => updateFilter({ ...filter, group: g })}>
+                <span className="group-name">{g}</span>
+                <span className="count">{groupCount(g)}</span>
+              </button>
+            ))}
+          </div>
           {selected.size > 0 && (
             <div className="batch-box">
               <div className="panel-title">已选 {selected.size} 项</div>
