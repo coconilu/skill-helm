@@ -1,1 +1,1 @@
-{"id": "agents-shared", "skillsDir": "~/.agents/skills", "note": "多 agent 共享 skills 目录"}
+{"id": "agents-shared", "skillsDir": "~/.agents/skills", "covers": ["codex", "kimi-code"], "note": "多 agent 共享 skills 目录；covers 表示这些 agent 也会读它，启用时与它们互斥"}

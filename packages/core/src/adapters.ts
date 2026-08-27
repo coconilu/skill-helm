@@ -8,7 +8,7 @@ import type { AdapterConfig } from "./types";
 export const DEFAULT_ADAPTERS: AdapterConfig[] = [
   { id: "codex", skillsDir: "~/.codex/skills" },
   { id: "kimi-code", skillsDir: "~/.kimi-code/skills" },
-  { id: "agents-shared", skillsDir: "~/.agents/skills" },
+  { id: "agents-shared", skillsDir: "~/.agents/skills", covers: ["codex", "kimi-code"] },
 ];
 
 export function expandHome(p: string): string {
@@ -25,14 +25,16 @@ export function loadAdapters(): AdapterConfig[] {
   const envDir = process.env.SKILL_HELM_ADAPTERS_DIR;
   const map = new Map<string, AdapterConfig>();
   if (!envDir) {
-    for (const a of DEFAULT_ADAPTERS) map.set(a.id, { id: a.id, skillsDir: expandHome(a.skillsDir) });
+    for (const a of DEFAULT_ADAPTERS) map.set(a.id, { id: a.id, skillsDir: expandHome(a.skillsDir), covers: a.covers });
   }
   const dirs = envDir ? [path.resolve(envDir)] : [paths.adapters()];
   for (const dir of dirs) {
     if (!fs.existsSync(dir)) continue;
     for (const f of fs.readdirSync(dir).filter((f) => f.endsWith(".json"))) {
       const cfg = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")) as Partial<AdapterConfig>;
-      if (cfg.id && cfg.skillsDir) map.set(cfg.id, { id: cfg.id, skillsDir: expandHome(cfg.skillsDir) });
+      if (cfg.id && cfg.skillsDir) {
+        map.set(cfg.id, { id: cfg.id, skillsDir: expandHome(cfg.skillsDir), covers: cfg.covers });
+      }
     }
   }
   return [...map.values()];

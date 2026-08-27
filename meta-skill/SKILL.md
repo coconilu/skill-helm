@@ -17,10 +17,10 @@ Skill Helm 的 Meta-Skill：通过 `skill-helm` CLI 管理 Skill 的全生命周
 ## 创建新 Skill 的流程
 
 1. `skill-helm concepts list` / `skill-helm concepts show <topic>` —— 先读概念注册表（anatomy、frontmatter、description-writing、naming、quality-checklist）。
-2. `skill-helm create <name> --description "..." [--category a,b] [--group g] --json` —— 生成模板入库。
+2. `skill-helm create <name> --description "..." [--category a,b] [--group g] --json` —— 生成模板入库，并自动启用共享目录适配器（agents-shared，所有 agent 立即可用）。
 3. 编辑库存中的 `SKILL.md` 正文（`skill-helm show <name> --json` 可拿到库存信息），按 anatomy 补充 scripts/references。
 4. `skill-helm lint <name> --json` —— 校验。
-5. `skill-helm enable <name> --to codex,kimi-code --json` —— 启用到目标 agent。
+5. 想调整启用范围再用 `enable`/`disable`；注意共享目录与具体适配器（codex、kimi-code）目录重叠，同一个 Skill 不要同时启用，会出同名重复。
 
 ## 从市场找 Skill 的流程
 

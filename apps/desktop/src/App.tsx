@@ -45,6 +45,7 @@ export default function App() {
             </button>
           ))}
         </nav>
+        <button className="refresh-btn" title="刷新数据" onClick={refresh}>⟳ 刷新</button>
         {doctorIssues.length > 0 && (
           <span className="doctor-badge" title={doctorIssues.map((i) => i.message).join("\n")}>
             ⚠ {doctorIssues.length} 项待处理

@@ -3,6 +3,8 @@
 export interface AdapterConfig {
   id: string;
   skillsDir: string;
+  /** 该目录会被哪些 agent（适配器 id）读取。启用它与启用被覆盖的适配器效果重叠，UI/调用方应互斥处理。 */
+  covers?: string[];
 }
 
 export interface SkillMeta {

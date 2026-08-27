@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
+import { spawn } from "node:child_process";
 import * as core from "@skill-helm/core";
 
 export interface ServerInfo {
@@ -35,6 +36,44 @@ function asStringList(v: unknown): string[] {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
 }
 
+/** 写入系统剪贴板（文本先 base64 再经命令行传入，避免控制台代码页乱码；后台静默）。 */
+function setClipboardText(text: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (process.platform !== "win32") return reject(new Error("剪贴板写入暂未支持该平台"));
+    const b64 = Buffer.from(text, "utf8").toString("base64");
+    const ps = `Set-Clipboard -Value ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${b64}')))`;
+    const child = spawn("powershell", ["-NoProfile", "-Command", ps], { stdio: "ignore", windowsHide: true });
+    child.on("error", reject);
+    child.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`Set-Clipboard 退出码 ${code}`))));
+  });
+}
+
+/** 用系统方式打开目录：folder = 文件管理器，code = VS Code。后台静默，不弹控制台窗口。 */
+function openPath(dir: string, target: "folder" | "code"): void {
+  const platform = process.platform;
+  let cmd: string;
+  let args: string[];
+  if (platform === "win32") {
+    // Windows 上统一走 cmd：explorer /n 强制开新的文件管理器窗口（否则 Win11 只会在已有窗口
+    // 里静默加一个后台标签页，用户以为没反应）、code 启动 VS Code。
+    // 直接 spawn explorer.exe 在无控制台环境下会静默失败；windowsHide 保证不弹控制台黑窗。
+    cmd = "cmd";
+    args = target === "code" ? ["/c", "code", dir] : ["/c", "start", "", "explorer.exe", `/n,"${dir}"`];
+  } else if (target === "code") {
+    cmd = "code";
+    args = [dir];
+  } else if (platform === "darwin") {
+    cmd = "open";
+    args = [dir];
+  } else {
+    cmd = "xdg-open";
+    args = [dir];
+  }
+  const child = spawn(cmd, args, { detached: true, stdio: "ignore", windowsHide: true });
+  child.on("error", () => undefined);
+  child.unref();
+}
+
 /**
  * 本地 HTTP API：packages/core 的薄包装，只监听回环地址。
  * 桌面端（Tauri）与浏览器调试共用；启动后把 origin 写入 ~/.skill-helm/server.json 并打印到 stdout。
@@ -56,7 +95,7 @@ export async function startServer(opts: { port?: number } = {}): Promise<ServerI
       // GET /api/meta
       if (req.method === "GET" && url.pathname === "/api/meta") {
         return sendJson(res, 200, {
-          adapters: core.loadAdapters().map((a) => a.id),
+          adapters: core.loadAdapters().map((a) => ({ id: a.id, covers: a.covers ?? [] })),
           store: core.paths.home(),
           history: core.historyStatus(),
         });
@@ -109,6 +148,21 @@ export async function startServer(opts: { port?: number } = {}): Promise<ServerI
           const body = await readBody(req);
           return sendJson(res, 200, core.disableSkill(name, asStringList(body.from)));
         }
+        // POST /api/skills/<name>/open {target: "folder" | "code"}
+        if (req.method === "POST" && action === "open") {
+          const body = await readBody(req);
+          const target = body.target === "code" ? "code" : "folder";
+          const dir = core.skillDir(name);
+          if (!fs.existsSync(dir)) return sendJson(res, 404, { error: `库存中不存在 Skill 目录: ${name}` });
+          openPath(dir, target);
+          return sendJson(res, 200, { opened: dir, target });
+        }
+      }
+      // POST /api/clipboard {text} —— WebView2 里 navigator.clipboard 不可靠，由 sidecar 写系统剪贴板
+      if (req.method === "POST" && url.pathname === "/api/clipboard") {
+        const body = await readBody(req);
+        await setClipboardText(String(body.text ?? ""));
+        return sendJson(res, 200, { copied: true });
       }
       // POST /api/adopt {path, name?, from?}
       if (req.method === "POST" && url.pathname === "/api/adopt") {

@@ -11,7 +11,7 @@ export default function MarketTab({ refresh }: { refresh: () => void }) {
 
   const tell = (msg: string) => {
     setNotice(msg);
-    setTimeout(() => setNotice(""), 5000);
+    setTimeout(() => setNotice(""), 6000);
   };
 
   const search = async () => {
@@ -53,7 +53,7 @@ export default function MarketTab({ refresh }: { refresh: () => void }) {
         />
         <button className="primary" onClick={search} disabled={loading}>{loading ? "搜索中…" : "搜索"}</button>
       </div>
-      {notice && <div className="notice">{notice}</div>}
+      {notice && <div className="toast">{notice}</div>}
       <table className="grid">
         <thead>
           <tr>

@@ -107,6 +107,9 @@ export function createSkill(input: SkillInput): SkillSummary {
     groups: input.groups ?? [],
     tags: input.tags ?? [],
   });
+  // 新建 Skill 默认启用共享目录适配器（covers 非空，如 agents-shared），让所有 agent 立即可用
+  const shared = loadAdapters().filter((a) => (a.covers ?? []).length > 0).map((a) => a.id);
+  if (shared.length > 0) enableSkill(input.name, shared);
   return getSkill(input.name).summary;
 }
 

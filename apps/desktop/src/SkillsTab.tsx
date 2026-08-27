@@ -26,7 +26,16 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
 
   const tell = (msg: string) => {
     setNotice(msg);
-    setTimeout(() => setNotice(""), 4000);
+    setTimeout(() => setNotice(""), 6000);
+  };
+
+  const copyName = async (name: string) => {
+    try {
+      await api.copy(name);
+      tell(`已复制：${name}`);
+    } catch (e) {
+      tell(`复制失败：${(e as Error).message}`);
+    }
   };
 
   const reload = () => {
@@ -34,11 +43,32 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
     refresh();
   };
 
-  const toggle = async (name: string, adapter: string, enabled: boolean) => {
+  /** 与某适配器目录重叠（会被同一批 agent 读到）的其他适配器 id。 */
+  const overlaps = (adapter: string): string[] => {
+    const cfgs = meta?.adapters ?? [];
+    const me = cfgs.find((c) => c.id === adapter);
+    const coveredByMe = me?.covers ?? [];
+    const coveringMe = cfgs.filter((c) => c.covers.includes(adapter)).map((c) => c.id);
+    return [...coveredByMe, ...coveringMe];
+  };
+
+  const toggle = async (name: string, adapter: string, enabled: boolean, enabledIn: string[]) => {
     try {
-      const r = enabled ? await api.disable(name, [adapter]) : await api.enable(name, [adapter]);
-      const err = r.results.find((x) => x.state === "error");
-      if (err) tell(`${adapter}: ${err.message}`);
+      if (enabled) {
+        const r = await api.disable(name, [adapter]);
+        const err = r.results.find((x) => x.state === "error");
+        if (err) tell(`${adapter}: ${err.message}`);
+      } else {
+        const r = await api.enable(name, [adapter]);
+        const err = r.results.find((x) => x.state === "error");
+        if (err) tell(`${adapter}: ${err.message}`);
+        // 互斥：目录重叠的适配器同时启用会产生同名重复，自动关闭
+        const off = enabledIn.filter((x) => x !== adapter && overlaps(adapter).includes(x));
+        if (off.length > 0) {
+          await api.disable(name, off);
+          tell(`已自动关闭「${off.join("、")}」：与「${adapter}」效果相同，无需同时开启`);
+        }
+      }
       reload();
     } catch (e) {
       tell((e as Error).message);
@@ -85,11 +115,20 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
     }
   };
 
+  const openSkill = async (target: "folder" | "code") => {
+    if (!detail) return;
+    try {
+      await api.open(detail.summary.name, target);
+    } catch (e) {
+      tell((e as Error).message);
+    }
+  };
+
   const adopt = async () => {
     if (!adoptPath.trim()) return;
     try {
       const r = await api.adopt(adoptPath.trim());
-      tell(`已收编 ${r.summary.name}${r.conflicts.length ? `；冲突: ${r.conflicts.map((c) => c.adapter).join(",")}` : ""}`);
+      tell(`已收编 ${r.summary.name}${r.conflicts.length ? `；但 ${r.conflicts.map((c) => c.adapter).join("、")} 下已存在同名目录，请手动处理` : ""}`);
       setAdoptPath("");
       reload();
     } catch (e) {
@@ -131,7 +170,7 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
         />
         <button onClick={adopt}>收编</button>
       </div>
-      {notice && <div className="notice">{notice}</div>}
+      {notice && <div className="toast">{notice}</div>}
       <table className="grid">
         <thead>
           <tr>
@@ -145,16 +184,19 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
         <tbody>
           {skills.map((s) => (
             <tr key={s.name} onClick={() => openDetail(s.name)} className={detail?.summary.name === s.name ? "selected" : ""}>
-              <td className="mono">{s.name}</td>
+              <td className="mono">
+                {s.name}
+                <button className="copy-btn" title="复制名称" onClick={(e) => { e.stopPropagation(); copyName(s.name); }}>⧉</button>
+              </td>
               <td className="desc" title={s.description}>{s.description || "-"}</td>
               <td>{s.categories.join(", ") || "-"}</td>
               <td>{s.groups.join(", ") || "-"}</td>
               <td onClick={(e) => e.stopPropagation()}>
                 {(meta?.adapters ?? []).map((a) => {
-                  const on = s.enabledIn.includes(a);
+                  const on = s.enabledIn.includes(a.id);
                   return (
-                    <button key={a} className={on ? "chip on" : "chip"} title={on ? "点击禁用" : "点击启用"} onClick={() => toggle(s.name, a, on)}>
-                      {a}
+                    <button key={a.id} className={on ? "chip on" : "chip"} title={on ? "点击禁用" : "点击启用"} onClick={() => toggle(s.name, a.id, on, s.enabledIn)}>
+                      {a.id}
                     </button>
                   );
                 })}
@@ -173,11 +215,14 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
         <div className="drawer-mask" onClick={() => setDetail(null)}>
           <aside className="drawer" onClick={(e) => e.stopPropagation()}>
             <header>
-              <h3 className="mono">{detail.summary.name}</h3>
+              <h3 className="mono">
+                {detail.summary.name}
+                <button className="copy-btn" title="复制名称" onClick={() => copyName(detail.summary.name)}>⧉</button>
+              </h3>
               <button className="close" onClick={() => setDetail(null)}>×</button>
             </header>
             <label>描述</label>
-            <textarea rows={3} value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
+            <textarea className="desc-input" rows={7} value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
             <label>分类（逗号分隔）</label>
             <input value={editCats} onChange={(e) => setEditCats(e.target.value)} />
             <label>分组（逗号分隔）</label>
@@ -186,13 +231,18 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
               <button className="primary" onClick={saveDetail}>保存</button>
               <button className="danger" onClick={removeSkill}>删除</button>
             </div>
+            <label>文件</label>
+            <div className="row">
+              <button onClick={() => openSkill("folder")}>打开目录</button>
+              <button onClick={() => openSkill("code")}>VS Code 打开</button>
+            </div>
             <label>启用状态</label>
             <div className="row">
               {(meta?.adapters ?? []).map((a) => {
-                const on = detail.summary.enabledIn.includes(a);
+                const on = detail.summary.enabledIn.includes(a.id);
                 return (
-                  <button key={a} className={on ? "chip on" : "chip"} onClick={async () => { await toggle(detail.summary.name, a, on); await openDetail(detail.summary.name); }}>
-                    {a}
+                  <button key={a.id} className={on ? "chip on" : "chip"} onClick={async () => { await toggle(detail.summary.name, a.id, on, detail.summary.enabledIn); await openDetail(detail.summary.name); }}>
+                    {a.id}
                   </button>
                 );
               })}
