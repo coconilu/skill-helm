@@ -10,6 +10,7 @@ interface Props {
 
 export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
   const [skills, setSkills] = useState<SkillSummary[]>([]);
+  const [catalog, setCatalog] = useState<SkillSummary[]>([]);
   const [filter, setFilter] = useState<SkillFilter>({});
   const [detail, setDetail] = useState<SkillDetail | null>(null);
   const [notice, setNotice] = useState("");
@@ -17,12 +18,26 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
   const [editDesc, setEditDesc] = useState("");
   const [editCats, setEditCats] = useState("");
   const [editGroups, setEditGroups] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [newGroup, setNewGroup] = useState("");
 
   const load = useCallback(() => {
     api.skills(filter).then(setSkills).catch((e: Error) => setNotice(e.message));
   }, [filter]);
 
+  // 未过滤的全量列表：用于派生分类/分组及其计数，不随过滤条件收缩
+  const loadCatalog = useCallback(() => {
+    api.skills({}).then(setCatalog).catch(() => {});
+  }, []);
+
   useEffect(load, [load, refreshKey]);
+  useEffect(loadCatalog, [loadCatalog, refreshKey]);
+
+  /** 更新过滤条件，同时清空批量选择，避免选中项被过滤隐藏后误操作。 */
+  const updateFilter = (f: SkillFilter) => {
+    setFilter(f);
+    setSelected(new Set());
+  };
 
   const tell = (msg: string) => {
     setNotice(msg);
@@ -40,6 +55,7 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
 
   const reload = () => {
     load();
+    loadCatalog();
     refresh();
   };
 
@@ -136,26 +152,57 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
     }
   };
 
-  const csv = (v: string) => v.split(",").map((s) => s.trim()).filter(Boolean);
-  const categories = [...new Set(skills.flatMap((s) => s.categories))];
-  const groups = [...new Set(skills.flatMap((s) => s.groups))];
+  const allVisibleSelected = skills.length > 0 && skills.every((s) => selected.has(s.name));
+
+  const toggleAll = () => {
+    setSelected(allVisibleSelected ? new Set() : new Set(skills.map((s) => s.name)));
+  };
+
+  const toggleOne = (name: string) => {
+    const next = new Set(selected);
+    if (next.has(name)) next.delete(name);
+    else next.add(name);
+    setSelected(next);
+  };
+
+  /** 批量把选中技能加入/移出某分组。 */
+  const applyGroup = async (group: string, mode: "add" | "remove") => {
+    const targets = catalog.filter((s) => selected.has(s.name));
+    if (targets.length === 0) return;
+    try {
+      for (const t of targets) {
+        const groups =
+          mode === "add" ? [...new Set([...t.groups, group])] : t.groups.filter((g) => g !== group);
+        await api.update(t.name, { groups });
+      }
+      tell(
+        mode === "add"
+          ? `已将 ${targets.length} 个技能加入「${group}」`
+          : `已将 ${targets.length} 个技能移出「${group}」`
+      );
+      setSelected(new Set());
+      reload();
+    } catch (e) {
+      tell((e as Error).message);
+    }
+  };
+
+  const createGroup = async () => {
+    const g = newGroup.trim();
+    if (!g || selected.size === 0) return;
+    await applyGroup(g, "add");
+    setNewGroup("");
+  };
+
+  const categories = [...new Set(catalog.flatMap((s) => s.categories))];
+  const groups = [...new Set(catalog.flatMap((s) => s.groups))];
+  const groupCount = (g: string) => catalog.filter((s) => s.groups.includes(g)).length;
+  const activeGroup = filter.group;
 
   return (
     <div className="page">
       <div className="toolbar">
-        <select value={filter.category ?? ""} onChange={(e) => setFilter({ ...filter, category: e.target.value || undefined })}>
-          <option value="">全部分类</option>
-          {categories.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-        <select value={filter.group ?? ""} onChange={(e) => setFilter({ ...filter, group: e.target.value || undefined })}>
-          <option value="">全部分组</option>
-          {groups.map((g) => (
-            <option key={g} value={g}>{g}</option>
-          ))}
-        </select>
-        <select value={filter.status ?? ""} onChange={(e) => setFilter({ ...filter, status: e.target.value || undefined })}>
+        <select value={filter.status ?? ""} onChange={(e) => updateFilter({ ...filter, status: e.target.value || undefined })}>
           <option value="">全部状态</option>
           <option value="enabled">启用</option>
           <option value="disabled">禁用</option>
@@ -170,46 +217,97 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
         />
         <button onClick={adopt}>收编</button>
       </div>
+      <div className="cat-chips">
+        <button className={!filter.category ? "chip on" : "chip"} onClick={() => updateFilter({ ...filter, category: undefined })}>
+          全部
+        </button>
+        {categories.map((c) => (
+          <button key={c} className={filter.category === c ? "chip on" : "chip"} onClick={() => updateFilter({ ...filter, category: c })}>
+            {c}
+          </button>
+        ))}
+      </div>
       {notice && <div className="toast">{notice}</div>}
-      <table className="grid">
-        <thead>
-          <tr>
-            <th>名称</th>
-            <th>描述</th>
-            <th>分类</th>
-            <th>分组</th>
-            <th>启用于</th>
-          </tr>
-        </thead>
-        <tbody>
-          {skills.map((s) => (
-            <tr key={s.name} onClick={() => openDetail(s.name)} className={detail?.summary.name === s.name ? "selected" : ""}>
-              <td className="mono">
-                {s.name}
-                <button className="copy-btn" title="复制名称" onClick={(e) => { e.stopPropagation(); copyName(s.name); }}>⧉</button>
-              </td>
-              <td className="desc" title={s.description}>{s.description || "-"}</td>
-              <td>{s.categories.join(", ") || "-"}</td>
-              <td>{s.groups.join(", ") || "-"}</td>
-              <td onClick={(e) => e.stopPropagation()}>
-                {(meta?.adapters ?? []).map((a) => {
-                  const on = s.enabledIn.includes(a.id);
-                  return (
-                    <button key={a.id} className={on ? "chip on" : "chip"} title={on ? "点击禁用" : "点击启用"} onClick={() => toggle(s.name, a.id, on, s.enabledIn)}>
-                      {a.id}
-                    </button>
-                  );
-                })}
-              </td>
-            </tr>
+      <div className="skills-layout">
+        <div className="skills-main">
+          <table className="grid">
+            <thead>
+              <tr>
+                <th className="check">
+                  <input type="checkbox" checked={allVisibleSelected} onChange={toggleAll} title="全选" />
+                </th>
+                <th>名称</th>
+                <th>描述</th>
+                <th>分类</th>
+                <th>启用于</th>
+              </tr>
+            </thead>
+            <tbody>
+              {skills.map((s) => (
+                <tr key={s.name} onClick={() => openDetail(s.name)} className={detail?.summary.name === s.name ? "selected" : ""}>
+                  <td className="check" onClick={(e) => e.stopPropagation()}>
+                    <input type="checkbox" checked={selected.has(s.name)} onChange={() => toggleOne(s.name)} />
+                  </td>
+                  <td className="mono">
+                    {s.name}
+                    <button className="copy-btn" title="复制名称" onClick={(e) => { e.stopPropagation(); copyName(s.name); }}>⧉</button>
+                  </td>
+                  <td className="desc" title={s.description}>{s.description || "-"}</td>
+                  <td>{s.categories.join(", ") || "-"}</td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    {(meta?.adapters ?? []).map((a) => {
+                      const on = s.enabledIn.includes(a.id);
+                      return (
+                        <button key={a.id} className={on ? "chip on" : "chip"} title={on ? "点击禁用" : "点击启用"} onClick={() => toggle(s.name, a.id, on, s.enabledIn)}>
+                          {a.id}
+                        </button>
+                      );
+                    })}
+                  </td>
+                </tr>
+              ))}
+              {skills.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="empty">暂无 Skill——用上方收编、市场安装，或让 Agent 创建一个</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <aside className="group-panel">
+          <div className="panel-title">分组</div>
+          <button className={!activeGroup ? "group-item active" : "group-item"} onClick={() => updateFilter({ ...filter, group: undefined })}>
+            <span className="group-name">全部</span>
+            <span className="count">{catalog.length}</span>
+          </button>
+          {groups.map((g) => (
+            <button key={g} className={activeGroup === g ? "group-item active" : "group-item"} onClick={() => updateFilter({ ...filter, group: g })}>
+              <span className="group-name">{g}</span>
+              <span className="count">{groupCount(g)}</span>
+            </button>
           ))}
-          {skills.length === 0 && (
-            <tr>
-              <td colSpan={5} className="empty">暂无 Skill——用上方收编、市场安装，或让 Agent 创建一个</td>
-            </tr>
+          {selected.size > 0 && (
+            <div className="batch-box">
+              <div className="panel-title">已选 {selected.size} 项</div>
+              {activeGroup && (
+                <>
+                  <button onClick={() => applyGroup(activeGroup, "add")}>加入「{activeGroup}」</button>
+                  <button onClick={() => applyGroup(activeGroup, "remove")}>移出「{activeGroup}」</button>
+                </>
+              )}
+              <input
+                placeholder="新分组名"
+                value={newGroup}
+                onChange={(e) => setNewGroup(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && createGroup()}
+              />
+              <button className="primary" disabled={!newGroup.trim()} onClick={createGroup}>
+                新建分组并加入
+              </button>
+            </div>
           )}
-        </tbody>
-      </table>
+        </aside>
+      </div>
 
       {detail && (
         <div className="drawer-mask" onClick={() => setDetail(null)}>
