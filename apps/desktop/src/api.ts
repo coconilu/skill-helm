@@ -63,6 +63,9 @@ export const api = {
   enable: (name: string, to: string[]) => call<{ results: { adapter: string; state: string; message?: string }[] }>("POST", `/api/skills/${encodeURIComponent(name)}/enable`, { to }),
   disable: (name: string, from: string[]) => call<{ results: { adapter: string; state: string; message?: string }[] }>("POST", `/api/skills/${encodeURIComponent(name)}/disable`, { from }),
   remove: (name: string) => call<{ removed: string }>("DELETE", `/api/skills/${encodeURIComponent(name)}`),
+  open: (name: string, target: "folder" | "code") =>
+    call<{ opened: string; target: string }>("POST", `/api/skills/${encodeURIComponent(name)}/open`, { target }),
+  copy: (text: string) => call<{ copied: boolean }>("POST", "/api/clipboard", { text }),
   adopt: (path: string) => call<{ summary: SkillSummary; conflicts: { adapter: string; path: string }[] }>("POST", "/api/adopt", { path }),
   search: (q: string) => call<MarketCandidate[]>("GET", "/api/search" + qs({ q })),
   install: (repo: string, skill?: string) => call<InstallResult>("POST", "/api/install", skill ? { repo, skill } : { repo }),

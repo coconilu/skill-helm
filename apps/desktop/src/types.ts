@@ -26,7 +26,7 @@ export interface SkillDetail {
 }
 
 export interface Meta {
-  adapters: string[];
+  adapters: { id: string; covers: string[] }[];
   store: string;
   history: { enabled: boolean; path?: string; events: number };
 }
