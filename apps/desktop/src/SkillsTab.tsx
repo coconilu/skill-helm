@@ -20,6 +20,7 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
   const [editGroups, setEditGroups] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [newGroup, setNewGroup] = useState("");
+  const [pickGroup, setPickGroup] = useState("");
 
   const load = useCallback(() => {
     api.skills(filter).then(setSkills).catch((e: Error) => setNotice(e.message));
@@ -303,11 +304,23 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
           {selected.size > 0 && (
             <div className="batch-box">
               <div className="panel-title">已选 {selected.size} 项</div>
+              <select value={pickGroup} onChange={(e) => setPickGroup(e.target.value)}>
+                <option value="">选择已有分组…</option>
+                {groups.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+              <button
+                disabled={!pickGroup}
+                onClick={() => {
+                  applyGroup(pickGroup, "add");
+                  setPickGroup("");
+                }}
+              >
+                加入该分组
+              </button>
               {activeGroup && (
-                <>
-                  <button onClick={() => applyGroup(activeGroup, "add")}>加入「{activeGroup}」</button>
-                  <button onClick={() => applyGroup(activeGroup, "remove")}>移出「{activeGroup}」</button>
-                </>
+                <button onClick={() => applyGroup(activeGroup, "remove")}>移出「{activeGroup}」</button>
               )}
               <input
                 placeholder="新分组名"
@@ -316,7 +329,7 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
                 onKeyDown={(e) => e.key === "Enter" && createGroup()}
               />
               <button className="primary" disabled={!newGroup.trim()} onClick={createGroup}>
-                新建分组并加入
+                {groups.includes(newGroup.trim()) ? `加入「${newGroup.trim()}」` : "新建分组并加入"}
               </button>
             </div>
           )}
