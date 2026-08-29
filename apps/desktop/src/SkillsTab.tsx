@@ -203,56 +203,61 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
   const activeStatus = filter.status;
 
   return (
-    <div className="page">
-      <div className="toolbar">
-        <span className="spacer" />
-        <input
-          className="adopt-input"
-          placeholder="收编路径，如 ~/.codex/skills/xxx"
-          value={adoptPath}
-          onChange={(e) => setAdoptPath(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && adopt()}
-        />
-        <button onClick={adopt}>收编</button>
-      </div>
-      <div className="cat-chips">
-        <button className={!filter.category ? "chip on" : "chip"} onClick={() => updateFilter({ ...filter, category: undefined })}>
-          全部
-        </button>
-        {categories.map((c) => (
-          <button key={c} className={filter.category === c ? "chip on" : "chip"} onClick={() => updateFilter({ ...filter, category: c })}>
-            {c}
+    <div className="page skills-page">
+      <div className="skills-content">
+        <div className="toolbar">
+          <button className={!filter.category ? "chip on" : "chip"} onClick={() => updateFilter({ ...filter, category: undefined })}>
+            全部
           </button>
-        ))}
-      </div>
-      {notice && <div className="toast">{notice}</div>}
-      <div className="skills-layout">
-        <div className="skills-main">
-          <table className="grid">
-            <thead>
-              <tr>
-                <th className="check">
-                  <input type="checkbox" checked={allVisibleSelected} onChange={toggleAll} title="全选" />
-                </th>
-                <th>名称</th>
-                <th>描述</th>
-                <th>分类</th>
-                <th>启用于</th>
-              </tr>
-            </thead>
-            <tbody>
-              {skills.map((s) => (
-                <tr key={s.name} onClick={() => openDetail(s.name)} className={detail?.summary.name === s.name ? "selected" : ""}>
-                  <td className="check" onClick={(e) => e.stopPropagation()}>
-                    <input type="checkbox" checked={selected.has(s.name)} onChange={() => toggleOne(s.name)} />
-                  </td>
-                  <td className="mono">
-                    {s.name}
-                    <button className="copy-btn" title="复制名称" onClick={(e) => { e.stopPropagation(); copyName(s.name); }}>⧉</button>
-                  </td>
-                  <td className="desc" title={s.description}>{s.description || "-"}</td>
-                  <td>{s.categories.join(", ") || "-"}</td>
-                  <td onClick={(e) => e.stopPropagation()}>
+          {categories.map((c) => (
+            <button key={c} className={filter.category === c ? "chip on" : "chip"} onClick={() => updateFilter({ ...filter, category: c })}>
+              {c}
+            </button>
+          ))}
+          <span className="spacer" />
+          <input
+            className="adopt-input"
+            placeholder="收编路径，如 ~/.codex/skills/xxx"
+            value={adoptPath}
+            onChange={(e) => setAdoptPath(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && adopt()}
+          />
+          <button onClick={adopt}>收编</button>
+        </div>
+        {notice && <div className="toast">{notice}</div>}
+        <table className="grid">
+          <colgroup>
+            <col className="col-check" />
+            <col className="col-name" />
+            <col />
+            <col className="col-cat" />
+            <col className="col-adapters" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>
+                <input type="checkbox" checked={allVisibleSelected} onChange={toggleAll} title="全选" />
+              </th>
+              <th>名称</th>
+              <th>描述</th>
+              <th>分类</th>
+              <th>启用于</th>
+            </tr>
+          </thead>
+          <tbody>
+            {skills.map((s) => (
+              <tr key={s.name} onClick={() => openDetail(s.name)} className={detail?.summary.name === s.name ? "selected" : ""}>
+                <td onClick={(e) => e.stopPropagation()}>
+                  <input type="checkbox" checked={selected.has(s.name)} onChange={() => toggleOne(s.name)} />
+                </td>
+                <td className="mono">
+                  {s.name}
+                  <button className="copy-btn" title="复制名称" onClick={(e) => { e.stopPropagation(); copyName(s.name); }}>⧉</button>
+                </td>
+                <td className="desc" title={s.description}>{s.description || "-"}</td>
+                <td>{s.categories.join(", ") || "-"}</td>
+                <td onClick={(e) => e.stopPropagation()}>
+                  <span className="chips">
                     {(meta?.adapters ?? []).map((a) => {
                       const on = s.enabledIn.includes(a.id);
                       return (
@@ -261,18 +266,19 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
                         </button>
                       );
                     })}
-                  </td>
-                </tr>
-              ))}
-              {skills.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="empty">暂无 Skill——用上方收编、市场安装，或让 Agent 创建一个</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        <aside className="group-panel">
+                  </span>
+                </td>
+              </tr>
+            ))}
+            {skills.length === 0 && (
+              <tr>
+                <td colSpan={5} className="empty">暂无 Skill——用上方收编、市场安装，或让 Agent 创建一个</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <aside className="group-panel">
           <div className="panel-section">
             <div className="panel-title">状态</div>
             <button className={!activeStatus ? "group-item active" : "group-item"} onClick={() => updateFilter({ ...filter, status: undefined })}>
@@ -334,7 +340,6 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
             </div>
           )}
         </aside>
-      </div>
 
       {detail && (
         <div className="drawer-mask" onClick={() => setDetail(null)}>
