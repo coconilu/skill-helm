@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write # bump 步骤需要建 PR 并合并（main 受分支保护，bot 不能直推）
 
 jobs:
   release:
@@ -37,19 +38,28 @@ jobs:
           node-version: 24
           cache: pnpm
 
-      - name: Bump version & changelog
+      - name: Bump version & changelog (via auto-merged PR)
         id: bump
         if: github.event_name == 'workflow_dispatch' && inputs.bump != 'none'
         shell: bash
         env:
           BUMP: ${{ inputs.bump }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           node .github/scripts/bump-version.mjs "$BUMP"
+          VERSION=$(node -p "require('./apps/desktop/package.json').version")
+          BRANCH="chore/release-v$VERSION"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
           git add apps/desktop/package.json apps/desktop/src-tauri/tauri.conf.json CHANGELOG.md
-          git commit -m "chore: release v$(node -p "require('./apps/desktop/package.json').version")"
-          git push
+          git commit -m "chore: release v$VERSION"
+          git push -u origin "$BRANCH"
+          gh pr create --title "chore: release v$VERSION" --body "自动版本号升级（release 工作流）" --base main --head "$BRANCH"
+          gh pr merge --squash --delete-branch "$BRANCH"
+          # 切到合并后的 main 提交，后续构建和打 tag 都基于它
+          git fetch origin main
+          git checkout --detach origin/main
 
       - name: Resolve release tag
         id: release_tag
