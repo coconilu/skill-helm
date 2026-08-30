@@ -154,7 +154,18 @@ button:disabled:hover { border-color: var(--border); }
 }
 .batch-box input, .batch-box select { width: 100%; }
 
-.grid input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; }
+/* 自绘复选框：原生 checkbox 在分数像素位置会渲染出残影（名字前的白点），故用 appearance: none 自行绘制 */
+.grid input[type="checkbox"] {
+  appearance: none;
+  width: 14px; height: 14px; padding: 0; margin: 0;
+  border: 1px solid var(--border); border-radius: 4px;
+  background: var(--bg-soft); cursor: pointer; vertical-align: middle;
+}
+.grid input[type="checkbox"]:checked {
+  background: var(--accent); border-color: var(--accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5 6.5 11.5 12.5 4.5' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: 12px; background-position: center; background-repeat: no-repeat;
+}
 
 .drawer-mask { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); }
 .drawer {
