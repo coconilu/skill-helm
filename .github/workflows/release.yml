@@ -3,10 +3,16 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      tag:
-        description: "Release tag（留空则取 apps/desktop/package.json 的版本号，如 v0.1.0）"
-        required: false
-        type: string
+      bump:
+        description: "版本号升级方式（自动更新 CHANGELOG 并提交回 main）"
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - none
   issues:
     types: [closed]
 
@@ -28,8 +34,22 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
+
+      - name: Bump version & changelog
+        id: bump
+        if: github.event_name == 'workflow_dispatch' && inputs.bump != 'none'
+        shell: bash
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          node .github/scripts/bump-version.mjs "$BUMP"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/desktop/package.json apps/desktop/src-tauri/tauri.conf.json CHANGELOG.md
+          git commit -m "chore: release v$(node -p "require('./apps/desktop/package.json').version")"
+          git push
 
       - name: Resolve release tag
         id: release_tag
@@ -37,8 +57,8 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "issues" ]; then
             TAG="v$(node -p "require('./apps/desktop/package.json').version")-issue${{ github.event.issue.number }}"
-          elif [ -n "${{ inputs.tag }}" ]; then
-            TAG="${{ inputs.tag }}"
+          elif [ -n "${{ steps.bump.outputs.tag }}" ]; then
+            TAG="${{ steps.bump.outputs.tag }}"
           else
             TAG="v$(node -p "require('./apps/desktop/package.json').version")"
           fi
