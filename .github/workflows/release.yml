@@ -83,6 +83,7 @@ jobs:
       - name: Build desktop installer (Tauri)
         # createUpdaterArtifacts 只在发布构建时开启：它要求签名私钥，
         # 留在默认配置里会导致本地无密钥时 desktop:build 失败
+        shell: bash # 默认 pwsh 会吞掉 --config JSON 里的双引号
         run: pnpm --filter skill-helm-desktop exec tauri build --config '{"bundle":{"createUpdaterArtifacts":true}}'
         env:
           # updater 签名私钥，存于仓库 Secrets；对应公钥写死在 tauri.conf.json
