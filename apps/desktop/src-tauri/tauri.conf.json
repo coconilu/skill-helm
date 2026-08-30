@@ -13,10 +13,10 @@
     "windows": [
       {
         "title": "Skill Helm",
-        "width": 1120,
-        "height": 740,
-        "minWidth": 860,
-        "minHeight": 560
+        "width": 1280,
+        "height": 780,
+        "minWidth": 1080,
+        "minHeight": 600
       }
     ],
     "security": {

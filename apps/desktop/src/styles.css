@@ -51,10 +51,16 @@ body {
 .doctor-badge { margin-left: auto; color: #e6b450; font-size: 13px; cursor: help; }
 
 main { flex: 1; overflow: auto; padding: 16px; }
+main.skills { padding: 0; overflow: hidden; }
 .page { max-width: 1280px; margin: 0 auto; }
 
-.toolbar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+/* 技能页：内容区 + docked 右侧栏，通高布局 */
+.skills-page { display: flex; max-width: none; height: 100%; }
+.skills-content { flex: 1; min-width: 0; overflow: auto; padding: 16px 20px; }
+
+.toolbar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
 .toolbar .spacer { flex: 1; }
+.toolbar .chip { padding: 4px 12px; font-size: 13px; margin-right: 0; }
 
 input, select, textarea {
   background: var(--bg-soft); border: 1px solid var(--border); color: var(--text);
@@ -84,22 +90,30 @@ button.danger { color: var(--danger); border-color: var(--danger); background: n
   to { opacity: 1; transform: translateY(0); }
 }
 
-.grid { width: 100%; border-collapse: collapse; }
+.grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.grid th, .grid td { padding: 0 10px; text-align: left; }
 .grid th {
-  text-align: left; color: var(--text-dim); font-weight: 500; font-size: 13px;
-  padding: 8px 10px; border-bottom: 1px solid var(--border);
+  height: 36px; color: var(--text-dim); font-weight: 500; font-size: 13px;
+  border-bottom: 1px solid var(--border);
 }
-.grid td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.grid td {
+  height: 44px; border-bottom: 1px solid var(--border); vertical-align: middle;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.grid .col-check { width: 36px; }
+.grid .col-name { width: 240px; }
+.grid .col-cat { width: 140px; }
+.grid .col-adapters { width: 300px; }
 .grid tbody tr:hover { background: var(--bg-hover); cursor: pointer; }
 .grid tr.selected { background: var(--bg-hover); }
-.grid .desc { max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .grid .empty { text-align: center; color: var(--text-dim); padding: 40px 0; }
 .mono { font-family: Consolas, "Cascadia Mono", monospace; font-size: 13px; }
 .copy-btn {
   background: none; border: none; color: var(--text-dim);
   padding: 1px 5px; margin-left: 4px; font-size: 12px; border-radius: 4px;
-  cursor: pointer; vertical-align: middle; opacity: 0.6;
+  cursor: pointer; vertical-align: middle; opacity: 0;
 }
+tr:hover .copy-btn { opacity: 0.7; }
 .copy-btn:hover { color: var(--text); background: var(--bg-hover); opacity: 1; }
 
 .chip {
@@ -107,6 +121,40 @@ button.danger { color: var(--danger); border-color: var(--danger); background: n
   background: none; border: 1px solid var(--border); color: var(--text-dim);
 }
 .chip.on { background: rgba(79, 156, 249, 0.18); border-color: var(--accent); color: var(--accent); }
+.chips { display: flex; gap: 6px; }
+.chips .chip { margin-right: 0; }
+
+button:disabled { opacity: 0.5; cursor: default; }
+button:disabled:hover { border-color: var(--border); }
+
+.group-panel {
+  width: 240px; flex-shrink: 0;
+  background: var(--bg-soft); border-left: 1px solid var(--border);
+  padding: 14px 12px; display: flex; flex-direction: column; gap: 2px;
+  overflow-y: auto;
+}
+.group-panel .panel-title { color: var(--text-dim); font-size: 12px; margin-bottom: 4px; }
+.panel-section { display: flex; flex-direction: column; gap: 4px; }
+.panel-section + .panel-section { border-top: 1px solid var(--border); margin-top: 8px; padding-top: 8px; }
+.group-item {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  height: 34px; padding: 0 10px;
+  background: none; border: 1px solid transparent; border-radius: 6px;
+  color: var(--text); text-align: left;
+}
+.group-item:hover { background: var(--bg-hover); }
+.group-item.active { background: rgba(79, 156, 249, 0.15); border-color: var(--accent); color: var(--accent); }
+.group-item .group-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.group-item .count { color: var(--text-dim); font-size: 12px; flex-shrink: 0; }
+.group-item.active .count { color: var(--accent); }
+
+.batch-box {
+  border-top: 1px solid var(--border); margin-top: 8px; padding-top: 8px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.batch-box input, .batch-box select { width: 100%; }
+
+.grid input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; }
 
 .drawer-mask { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); }
 .drawer {

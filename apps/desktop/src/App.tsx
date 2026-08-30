@@ -52,7 +52,7 @@ export default function App() {
           </span>
         )}
       </header>
-      <main>
+      <main className={tab}>
         {tab === "skills" && <SkillsTab meta={meta} refresh={refresh} refreshKey={refreshKey} />}
         {tab === "market" && <MarketTab refresh={refresh} />}
         {tab === "history" && <HistoryTab refreshKey={refreshKey} />}
