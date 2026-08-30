@@ -64,6 +64,8 @@ pnpm --dir apps/desktop desktop:dev     # 开发模式（自动拉起 skill-helm
 pnpm --dir apps/desktop desktop:build   # 打包 NSIS 安装包
 ```
 
+桌面端带自动更新：启动时检查一次、此后每 30 分钟轮询 GitHub Releases 的 `latest.json`，发现新版本会在右下角弹出常驻 toast，点击「立即更新」即下载安装（NSIS 安装器接管并自动重启到新版本）。发布侧由 `.github/workflows/release.yml` 完成——打包时用 `TAURI_SIGNING_PRIVATE_KEY`（仓库 Secret，对应公钥已写死在 `tauri.conf.json`）为更新包签名，并生成 `latest.json` 一并上传。注意：丢失私钥意味着无法再签发更新，需要换公钥并强制所有用户重装。
+
 常用命令（全部支持 `--json`）：
 
 ```powershell

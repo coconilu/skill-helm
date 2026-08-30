@@ -57,6 +57,7 @@ fn main() {
     let (child, origin) = spawn_sidecar();
     let pid = child.id();
     let app = tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(ApiOrigin(Mutex::new(origin)))
         .invoke_handler(tauri::generate_handler![api_origin])
         .build(tauri::generate_context!())

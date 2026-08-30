@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { check, type Update } from "@tauri-apps/plugin-updater";
 import { api } from "./api";
 import type { DoctorIssue, Meta } from "./types";
 import SkillsTab from "./SkillsTab";
@@ -14,11 +15,41 @@ export default function App() {
   const [fatal, setFatal] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+  const [update, setUpdate] = useState<Update | null>(null);
+  const [updateState, setUpdateState] = useState<"idle" | "busy" | "error">("idle");
 
   useEffect(() => {
     api.meta().then(setMeta).catch((e: Error) => setFatal(e.message));
     api.doctor().then((r) => setDoctorIssues(r.issues)).catch(() => setDoctorIssues([]));
   }, [refreshKey]);
+
+  // 启动时检查一次，此后每 30 分钟轮询；离线或检查失败不打扰用户
+  useEffect(() => {
+    let cancelled = false;
+    const run = () =>
+      check()
+        .then((u) => {
+          if (!cancelled && u) setUpdate(u);
+        })
+        .catch(() => {});
+    run();
+    const timer = setInterval(run, 30 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, []);
+
+  const installUpdate = useCallback(async () => {
+    if (!update) return;
+    setUpdateState("busy");
+    try {
+      // Windows NSIS：下载完成后安装器接管，自动关闭并重启到新版本
+      await update.downloadAndInstall();
+    } catch {
+      setUpdateState("error");
+    }
+  }, [update]);
 
   if (fatal) {
     return (
@@ -57,6 +88,18 @@ export default function App() {
         {tab === "market" && <MarketTab refresh={refresh} />}
         {tab === "history" && <HistoryTab refreshKey={refreshKey} />}
       </main>
+      {update && (
+        <div className="update-toast">
+          <div className="update-toast-text">
+            发现新版本 <b>v{update.version}</b>（当前 v{update.currentVersion}）
+            {updateState === "busy" && <div className="update-toast-sub">正在下载更新…</div>}
+            {updateState === "error" && <div className="update-toast-sub error">下载失败，请重试</div>}
+          </div>
+          <button onClick={installUpdate} disabled={updateState === "busy"}>
+            立即更新
+          </button>
+        </div>
+      )}
     </div>
   );
 }
