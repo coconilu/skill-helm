@@ -35,7 +35,15 @@ export function setupTestEnv(): TestEnv {
   };
 }
 
-export function writeSkill(dir: string, name: string, description = "这是一个用于测试的 skill 描述"): void {
+export function writeSkill(
+  dir: string,
+  name: string,
+  description = "这是一个用于测试的 skill 描述",
+): void {
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, "SKILL.md"), `---\nname: ${name}\ndescription: ${description}\n---\n\n# ${name}\n`, "utf8");
+  fs.writeFileSync(
+    path.join(dir, "SKILL.md"),
+    `---\nname: ${name}\ndescription: ${description}\n---\n\n# ${name}\n`,
+    "utf8",
+  );
 }

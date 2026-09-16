@@ -54,11 +54,7 @@ export interface TargetResult {
 }
 
 export interface DoctorIssue {
-  type:
-    | "registry-missing-dir"
-    | "unregistered"
-    | "link-drift"
-    | "unmanaged";
+  type: "registry-missing-dir" | "unregistered" | "link-drift" | "unmanaged";
   name?: string;
   adapter?: string;
   message: string;

@@ -14,14 +14,20 @@ afterEach(() => env.cleanup());
 
 function run(...args: string[]): string {
   return execFileSync(process.execPath, [CLI, ...args], {
-    env: { ...process.env, SKILL_HELM_HOME: env.home, SKILL_HELM_ADAPTERS_DIR: path.join(env.root, "adapters") },
+    env: {
+      ...process.env,
+      SKILL_HELM_HOME: env.home,
+      SKILL_HELM_ADAPTERS_DIR: path.join(env.root, "adapters"),
+    },
     encoding: "utf8",
   });
 }
 
 describe("cli e2e", () => {
   it("create → list → enable → disable 全链路 --json", () => {
-    const created = JSON.parse(run("create", "e2e-skill", "--description", "端到端测试 skill", "--json"));
+    const created = JSON.parse(
+      run("create", "e2e-skill", "--description", "端到端测试 skill", "--json"),
+    );
     expect(created.name).toBe("e2e-skill");
 
     const list = JSON.parse(run("list", "--json"));
@@ -30,7 +36,9 @@ describe("cli e2e", () => {
 
     const enabled = JSON.parse(run("enable", "e2e-skill", "--to", "codex,kimi", "--json"));
     expect(enabled.results.every((r: { state: string }) => r.state === "ok")).toBe(true);
-    expect(fs.lstatSync(path.join(env.skillsDirFor("codex"), "e2e-skill")).isSymbolicLink()).toBe(true);
+    expect(fs.lstatSync(path.join(env.skillsDirFor("codex"), "e2e-skill")).isSymbolicLink()).toBe(
+      true,
+    );
 
     const disabled = JSON.parse(run("disable", "e2e-skill", "--from", "codex", "--json"));
     expect(disabled.results[0].state).toBe("ok");
