@@ -115,9 +115,33 @@ export async function runCheck(): Promise<void> {
   }
 }
 
+// 下载进度按 ~100ms 批量合并：Progress 每个分块都会触发，直接 setState
+// 会让 App 及全部子组件按分块频率全量重渲染
+const PROGRESS_FLUSH_MS = 100;
+let pendingProgressBytes = 0;
+let progressFlushScheduled = false;
+
+function flushProgress(): void {
+  progressFlushScheduled = false;
+  if (pendingProgressBytes > 0 && state.installStatus === "downloading") {
+    setState({
+      downloadedBytes: state.downloadedBytes + pendingProgressBytes,
+    });
+  }
+  pendingProgressBytes = 0;
+}
+
+function scheduleProgressFlush(): void {
+  if (progressFlushScheduled) return;
+  progressFlushScheduled = true;
+  setTimeout(flushProgress, PROGRESS_FLUSH_MS);
+}
+
 export async function install(): Promise<void> {
   if (installLocked || installed || !handle) return;
   installLocked = true; // 首个 await 前同步置位
+  pendingProgressBytes = 0;
+  progressFlushScheduled = false;
   setState({
     installStatus: "downloading",
     installError: null,
@@ -134,13 +158,12 @@ export async function install(): Promise<void> {
           });
           break;
         case "Progress":
-          setState({
-            downloadedBytes: state.downloadedBytes + event.data.chunkLength,
-            installStatus: "downloading",
-          });
+          pendingProgressBytes += event.data.chunkLength;
+          scheduleProgressFlush();
           break;
         case "Finished":
-          // 下载完成不等于安装成功，进入安装阶段展示
+          // 下载完成不等于安装成功，进入安装阶段展示；先结清未合并的字节
+          flushProgress();
           setState({ installStatus: "installing" });
           break;
       }
