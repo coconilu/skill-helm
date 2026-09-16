@@ -1,1 +1,1 @@
-{}
+{"default":{"identifier":"default","description":"Main window: app version lookup and updater check/install. Kept minimal — no window/event/filesystem APIs are exposed.","local":true,"windows":["main"],"permissions":["core:default","updater:allow-check","updater:allow-download-and-install"]}}
