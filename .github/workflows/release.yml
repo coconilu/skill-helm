@@ -16,27 +16,27 @@ on:
   issues:
     types: [closed]
 
-permissions:
-  contents: write
-  pull-requests: write # bump 步骤需要建 PR 并合并（main 受分支保护，bot 不能直推）
-
+# 权限按 job 最小化分配（见各 job 的 permissions 块）
 jobs:
-  release:
-    runs-on: windows-latest
+  # 版本准备：bump、版本 PR 自动合并、解析固定提交 SHA / tag / 预发布标记。
+  # 后续构建与发布全部基于这里输出的 SHA，不用会移动的 main 引用。
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write # bump 步骤需要建 PR 并合并（main 受分支保护，bot 不能直推）
+    outputs:
+      tag: ${{ steps.release_tag.outputs.tag }}
+      sha: ${{ steps.release_meta.outputs.sha }}
+      prerelease: ${{ steps.release_meta.outputs.prerelease }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v5
-        with:
-          version: 10.18.3
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: 24
-          cache: pnpm
 
       - name: Bump version & changelog (via auto-merged PR)
         id: bump
@@ -74,6 +74,56 @@ jobs:
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve build commit & prerelease flag
+        id: release_meta
+        shell: bash
+        run: |
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          # issue 触发的构建标记为 prerelease，避免抢占 releases/latest（updater 端点）
+          if [ "${{ github.event_name }}" = "issues" ]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # 双平台构建 matrix。macOS 产物先归拢到扁平 staging 目录再上传：
+  # upload-artifact 对多路径取最小公共祖先，直接传 bundle 多个子目录会嵌套错位。
+  build:
+    needs: prepare
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows-x86_64
+          - os: macos-latest
+            platform: darwin-aarch64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+        with:
+          version: 10.18.3
+
+      - name: Setup Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: apps/desktop/src-tauri
+          prefix-key: skill-helm-${{ github.workflow }}
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -83,23 +133,80 @@ jobs:
       - name: Build desktop installer (Tauri)
         # createUpdaterArtifacts 只在发布构建时开启：它要求签名私钥，
         # 留在默认配置里会导致本地无密钥时 desktop:build 失败
-        shell: bash # 默认 pwsh 会吞掉 --config JSON 里的双引号
-        run: pnpm --filter skill-helm-desktop exec tauri build --config '{"bundle":{"createUpdaterArtifacts":true}}'
+        # shell: bash —— 默认 pwsh 会吞掉 --config JSON 里的双引号
+        # targets 按平台用 --config 覆盖（tauri.conf.json 的 targets 归 desktop 维护）：
+        # macOS 的 updater 产物 .app.tar.gz 由 app target 生成，只配 dmg 会拿不到
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            CONFIG='{"bundle":{"createUpdaterArtifacts":true,"targets":["app","dmg"]}}'
+          else
+            CONFIG='{"bundle":{"createUpdaterArtifacts":true,"targets":["nsis"]}}'
+          fi
+          pnpm --filter skill-helm-desktop exec tauri build --config "$CONFIG"
         env:
           # updater 签名私钥，存于仓库 Secrets；对应公钥写死在 tauri.conf.json
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
+      - name: Stage updater artifacts (flatten)
+        shell: bash
+        run: |
+          mkdir -p release-staging
+          bundle=apps/desktop/src-tauri/target/release/bundle
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            cp "$bundle"/macos/*.app.tar.gz release-staging/
+            cp "$bundle"/macos/*.app.tar.gz.sig release-staging/
+            cp "$bundle"/dmg/*.dmg release-staging/
+          else
+            cp "$bundle"/nsis/*.exe release-staging/
+            cp "$bundle"/nsis/*.exe.sig release-staging/
+          fi
+          ls -la release-staging/
+
+      - name: Upload updater artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: updater-${{ matrix.platform }}
+          path: release-staging/
+          if-no-files-found: error
+
+  # 发布：两个平台产物齐全后生成 latest.json 并发布 Release。
+  # 任一平台构建失败时本 job 不会运行，不会发出只覆盖单平台的更新清单。
+  publish:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+
+      - name: Setup Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24
+
+      - name: Download platform artifacts
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: updater-*
+          path: dist-release
+          merge-multiple: true
+
       - name: Generate updater manifest (latest.json)
-        run: node .github/scripts/gen-latest-json.mjs "${{ steps.release_tag.outputs.tag }}"
+        run: node .github/scripts/gen-latest-json.mjs "${{ needs.prepare.outputs.tag }}" dist-release
 
       - name: Publish release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
-          tag_name: ${{ steps.release_tag.outputs.tag }}
-          name: Skill Helm ${{ steps.release_tag.outputs.tag }}
-          # issue 触发的构建标记为 prerelease，避免抢占 releases/latest（updater 端点）
-          prerelease: ${{ github.event_name == 'issues' }}
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: Skill Helm ${{ needs.prepare.outputs.tag }}
+          prerelease: ${{ needs.prepare.outputs.prerelease == 'true' }}
           files: |
-            apps/desktop/src-tauri/target/release/bundle/nsis/*.exe
-            apps/desktop/src-tauri/target/release/bundle/nsis/latest.json
+            dist-release/*.exe
+            dist-release/*.app.tar.gz
+            dist-release/*.dmg
+            dist-release/latest.json
