@@ -203,8 +203,12 @@ jobs:
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
+          # tag 不存在时默认打在触发提交（GITHUB_SHA）上；bump≠none 时那还是旧版本号的
+          # 提交，必须钉到 prepare 输出的、bump squash-merge 后的固定 SHA
+          target_commitish: ${{ needs.prepare.outputs.sha }}
           name: Skill Helm ${{ needs.prepare.outputs.tag }}
           prerelease: ${{ needs.prepare.outputs.prerelease == 'true' }}
+          fail_on_unmatched_files: true
           files: |
             dist-release/*.exe
             dist-release/*.app.tar.gz
