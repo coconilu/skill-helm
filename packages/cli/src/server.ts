@@ -42,9 +42,14 @@ function setClipboardText(text: string): Promise<void> {
     if (process.platform !== "win32") return reject(new Error("剪贴板写入暂未支持该平台"));
     const b64 = Buffer.from(text, "utf8").toString("base64");
     const ps = `Set-Clipboard -Value ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${b64}')))`;
-    const child = spawn("powershell", ["-NoProfile", "-Command", ps], { stdio: "ignore", windowsHide: true });
+    const child = spawn("powershell", ["-NoProfile", "-Command", ps], {
+      stdio: "ignore",
+      windowsHide: true,
+    });
     child.on("error", reject);
-    child.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`Set-Clipboard 退出码 ${code}`))));
+    child.on("exit", (code) =>
+      code === 0 ? resolve() : reject(new Error(`Set-Clipboard 退出码 ${code}`)),
+    );
   });
 }
 
@@ -58,7 +63,8 @@ function openPath(dir: string, target: "folder" | "code"): void {
     // 里静默加一个后台标签页，用户以为没反应）、code 启动 VS Code。
     // 直接 spawn explorer.exe 在无控制台环境下会静默失败；windowsHide 保证不弹控制台黑窗。
     cmd = "cmd";
-    args = target === "code" ? ["/c", "code", dir] : ["/c", "start", "", "explorer.exe", `/n,"${dir}"`];
+    args =
+      target === "code" ? ["/c", "code", dir] : ["/c", "start", "", "explorer.exe", `/n,"${dir}"`];
   } else if (target === "code") {
     cmd = "code";
     args = [dir];
@@ -153,7 +159,8 @@ export async function startServer(opts: { port?: number } = {}): Promise<ServerI
           const body = await readBody(req);
           const target = body.target === "code" ? "code" : "folder";
           const dir = core.skillDir(name);
-          if (!fs.existsSync(dir)) return sendJson(res, 404, { error: `库存中不存在 Skill 目录: ${name}` });
+          if (!fs.existsSync(dir))
+            return sendJson(res, 404, { error: `库存中不存在 Skill 目录: ${name}` });
           openPath(dir, target);
           return sendJson(res, 200, { opened: dir, target });
         }
@@ -197,7 +204,11 @@ export async function startServer(opts: { port?: number } = {}): Promise<ServerI
         const status = core.historyStatus();
         if (!status.enabled) return sendJson(res, 200, { enabled: false, events: [] });
         const limit = Number(url.searchParams.get("limit") ?? "100");
-        return sendJson(res, 200, { enabled: true, path: status.path, events: core.listHistory({ limit }) });
+        return sendJson(res, 200, {
+          enabled: true,
+          path: status.path,
+          events: core.listHistory({ limit }),
+        });
       }
       // GET /api/concepts
       if (req.method === "GET" && url.pathname === "/api/concepts") {
@@ -218,7 +229,11 @@ export async function startServer(opts: { port?: number } = {}): Promise<ServerI
         pid: process.pid,
         startedAt: new Date().toISOString(),
       };
-      fs.writeFileSync(path.join(core.paths.home(), "server.json"), JSON.stringify(info, null, 2) + "\n", "utf8");
+      fs.writeFileSync(
+        path.join(core.paths.home(), "server.json"),
+        JSON.stringify(info, null, 2) + "\n",
+        "utf8",
+      );
       process.stdout.write(`SKILL_HELM_API ${info.origin}\n`);
       resolve(info);
     });

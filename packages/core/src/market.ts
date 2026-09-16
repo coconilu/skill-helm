@@ -50,7 +50,13 @@ export async function searchGitHub(query: string, limit = 10): Promise<MarketCan
       throw new Error(`GitHub 搜索失败（HTTP ${status}）：${body.slice(0, 200).toString("utf8")}`);
     }
     const data = JSON.parse(body.toString("utf8")) as {
-      items?: { full_name: string; description: string | null; stargazers_count: number; html_url: string; default_branch?: string }[];
+      items?: {
+        full_name: string;
+        description: string | null;
+        stargazers_count: number;
+        html_url: string;
+        default_branch?: string;
+      }[];
     };
     return (data.items ?? []).map((it) => ({
       source: "github" as const,
@@ -118,11 +124,16 @@ export interface InstallResult {
 }
 
 /** 从 GitHub 仓库安装 Skill 进库存（tar.gz 下载 + 扫描 + 复制；不经用户确认的路径在 CLI 层拦截）。 */
-export async function installFromGitHub(repo: string, opts: { skill?: string } = {}): Promise<InstallResult> {
+export async function installFromGitHub(
+  repo: string,
+  opts: { skill?: string } = {},
+): Promise<InstallResult> {
   if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) throw new Error(`仓库格式应为 owner/name，收到: ${repo}`);
   const infoRes = await httpsGet(`https://api.github.com/repos/${repo}`);
   if (infoRes.status !== 200) throw new Error(`找不到仓库 ${repo}（HTTP ${infoRes.status}）`);
-  const branch = (JSON.parse(infoRes.body.toString("utf8")) as { default_branch?: string }).default_branch ?? "main";
+  const branch =
+    (JSON.parse(infoRes.body.toString("utf8")) as { default_branch?: string }).default_branch ??
+    "main";
 
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "skill-helm-market-"));
   try {
@@ -147,7 +158,9 @@ export async function installFromGitHub(repo: string, opts: { skill?: string } =
     else if (opts.skill) {
       picks = skills.filter((s) => s.name === opts.skill);
       if (picks.length === 0) {
-        throw new Error(`${repo} 里没有名为 "${opts.skill}" 的 Skill；实际有: ${skills.map((s) => s.name).join(", ")}`);
+        throw new Error(
+          `${repo} 里没有名为 "${opts.skill}" 的 Skill；实际有: ${skills.map((s) => s.name).join(", ")}`,
+        );
       }
     } else if (skills.length === 1) picks = skills;
     else return { installed: [], candidates: skills };

@@ -23,7 +23,9 @@ describe("market.scanSkillsInRepo", () => {
 
     const found = scanSkillsInRepo(repo);
     expect(found.map((s) => s.name)).toEqual(["skill-a", "skill-b", "skill-c"]);
-    expect(found.find((s) => s.name === "skill-b")?.relativeDir).toBe(path.join("skills", "skill-b"));
+    expect(found.find((s) => s.name === "skill-b")?.relativeDir).toBe(
+      path.join("skills", "skill-b"),
+    );
     expect(found.every((s) => s.description)).toBe(true);
   });
 
