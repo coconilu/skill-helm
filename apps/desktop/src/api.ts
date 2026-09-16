@@ -56,19 +56,47 @@ export interface SkillFilter {
 
 export const api = {
   meta: () => call<Meta>("GET", "/api/meta"),
-  skills: (f: SkillFilter) => call<SkillSummary[]>("GET", "/api/skills" + qs(f as Record<string, string | undefined>)),
+  skills: (f: SkillFilter) =>
+    call<SkillSummary[]>("GET", "/api/skills" + qs(f as Record<string, string | undefined>)),
   getSkill: (name: string) => call<SkillDetail>("GET", `/api/skills/${encodeURIComponent(name)}`),
-  update: (name: string, patch: { description?: string; categories?: string[]; groups?: string[] }) =>
-    call<SkillSummary>("POST", `/api/skills/${encodeURIComponent(name)}/update`, patch),
-  enable: (name: string, to: string[]) => call<{ results: { adapter: string; state: string; message?: string }[] }>("POST", `/api/skills/${encodeURIComponent(name)}/enable`, { to }),
-  disable: (name: string, from: string[]) => call<{ results: { adapter: string; state: string; message?: string }[] }>("POST", `/api/skills/${encodeURIComponent(name)}/disable`, { from }),
-  remove: (name: string) => call<{ removed: string }>("DELETE", `/api/skills/${encodeURIComponent(name)}`),
+  update: (
+    name: string,
+    patch: { description?: string; categories?: string[]; groups?: string[] },
+  ) => call<SkillSummary>("POST", `/api/skills/${encodeURIComponent(name)}/update`, patch),
+  enable: (name: string, to: string[]) =>
+    call<{ results: { adapter: string; state: string; message?: string }[] }>(
+      "POST",
+      `/api/skills/${encodeURIComponent(name)}/enable`,
+      { to },
+    ),
+  disable: (name: string, from: string[]) =>
+    call<{ results: { adapter: string; state: string; message?: string }[] }>(
+      "POST",
+      `/api/skills/${encodeURIComponent(name)}/disable`,
+      { from },
+    ),
+  remove: (name: string) =>
+    call<{ removed: string }>("DELETE", `/api/skills/${encodeURIComponent(name)}`),
   open: (name: string, target: "folder" | "code") =>
-    call<{ opened: string; target: string }>("POST", `/api/skills/${encodeURIComponent(name)}/open`, { target }),
+    call<{ opened: string; target: string }>(
+      "POST",
+      `/api/skills/${encodeURIComponent(name)}/open`,
+      { target },
+    ),
   copy: (text: string) => call<{ copied: boolean }>("POST", "/api/clipboard", { text }),
-  adopt: (path: string) => call<{ summary: SkillSummary; conflicts: { adapter: string; path: string }[] }>("POST", "/api/adopt", { path }),
+  adopt: (path: string) =>
+    call<{ summary: SkillSummary; conflicts: { adapter: string; path: string }[] }>(
+      "POST",
+      "/api/adopt",
+      { path },
+    ),
   search: (q: string) => call<MarketCandidate[]>("GET", "/api/search" + qs({ q })),
-  install: (repo: string, skill?: string) => call<InstallResult>("POST", "/api/install", skill ? { repo, skill } : { repo }),
+  install: (repo: string, skill?: string) =>
+    call<InstallResult>("POST", "/api/install", skill ? { repo, skill } : { repo }),
   doctor: () => call<{ issues: DoctorIssue[] }>("GET", "/api/doctor"),
-  history: () => call<{ enabled: boolean; path?: string; events: HistoryEvent[] }>("GET", "/api/history?limit=200"),
+  history: () =>
+    call<{ enabled: boolean; path?: string; events: HistoryEvent[] }>(
+      "GET",
+      "/api/history?limit=200",
+    ),
 };

@@ -16,7 +16,15 @@ function nowIso(): string {
 }
 
 function defaultMeta(): SkillMeta {
-  return { enabledIn: [], categories: [], groups: [], tags: [], source: "local", createdAt: nowIso(), updatedAt: nowIso() };
+  return {
+    enabledIn: [],
+    categories: [],
+    groups: [],
+    tags: [],
+    source: "local",
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  };
 }
 
 /** 从磁盘实际联接状态重算启用列表，让 registry 始终跟随事实。 */
@@ -26,7 +34,11 @@ function actualEnabledIn(name: string, target: string): string[] {
     .map((a) => a.id);
 }
 
-function ensureTaxonomy(reg: { categories: Record<string, object>; groups: Record<string, object> }, categories: string[], groups: string[]): void {
+function ensureTaxonomy(
+  reg: { categories: Record<string, object>; groups: Record<string, object> },
+  categories: string[],
+  groups: string[],
+): void {
   for (const c of categories) reg.categories[c] ??= {};
   for (const g of groups) reg.groups[g] ??= {};
 }
@@ -108,7 +120,9 @@ export function createSkill(input: SkillInput): SkillSummary {
     tags: input.tags ?? [],
   });
   // 新建 Skill 默认启用共享目录适配器（covers 非空，如 agents-shared），让所有 agent 立即可用
-  const shared = loadAdapters().filter((a) => (a.covers ?? []).length > 0).map((a) => a.id);
+  const shared = loadAdapters()
+    .filter((a) => (a.covers ?? []).length > 0)
+    .map((a) => a.id);
   if (shared.length > 0) enableSkill(input.name, shared);
   return getSkill(input.name).summary;
 }
@@ -146,7 +160,10 @@ export interface AdoptResult {
   conflicts: { adapter: string; path: string }[];
 }
 
-export function adoptSkill(srcPath: string, opts: { name?: string; from?: string } = {}): AdoptResult {
+export function adoptSkill(
+  srcPath: string,
+  opts: { name?: string; from?: string } = {},
+): AdoptResult {
   const src = path.resolve(srcPath);
   if (!fs.existsSync(src)) throw new Error(`路径不存在: ${src}`);
   const info = readSkillInfo(src);
@@ -173,7 +190,11 @@ export function adoptSkill(srcPath: string, opts: { name?: string; from?: string
   }
   if (owner) createLink(target, linkPathFor(owner, name));
   updateRegistry((reg) => {
-    reg.skills[name] = { ...defaultMeta(), source: "adopted", enabledIn: actualEnabledIn(name, target) };
+    reg.skills[name] = {
+      ...defaultMeta(),
+      source: "adopted",
+      enabledIn: actualEnabledIn(name, target),
+    };
   });
   recordEvent("adopt", name, { src, owner: owner?.id, conflicts: conflicts.map((c) => c.adapter) });
   return { summary: getSkill(name).summary, conflicts };
@@ -181,14 +202,17 @@ export function adoptSkill(srcPath: string, opts: { name?: string; from?: string
 
 export function enableSkill(name: string, adapterIds: string[]): { results: TargetResult[] } {
   const target = skillDir(name);
-  if (!fs.existsSync(target)) throw new Error(`库存中不存在 Skill: ${name}（可先 create 或 adopt）`);
+  if (!fs.existsSync(target))
+    throw new Error(`库存中不存在 Skill: ${name}（可先 create 或 adopt）`);
   const results: TargetResult[] = adapterIds.map((id) => {
     const a = getAdapter(id);
     const lp = linkPathFor(a, name);
     const state = inspectLink(lp, target);
     if (state === "ok") return { adapter: id, state: "already" };
-    if (state === "conflict") return { adapter: id, state: "error", message: `${lp} 已被真实目录占用，可先 adopt 收编` };
-    if (state === "foreign") return { adapter: id, state: "error", message: `${lp} 是指向别处的联接，请人工处理` };
+    if (state === "conflict")
+      return { adapter: id, state: "error", message: `${lp} 已被真实目录占用，可先 adopt 收编` };
+    if (state === "foreign")
+      return { adapter: id, state: "error", message: `${lp} 是指向别处的联接，请人工处理` };
     try {
       if (state === "broken") fs.rmSync(lp, { force: true });
       createLink(target, lp);
@@ -202,7 +226,9 @@ export function enableSkill(name: string, adapterIds: string[]): { results: Targ
     m.enabledIn = actualEnabledIn(name, target);
     m.updatedAt = nowIso();
   });
-  recordEvent("enable", name, { to: results.filter((r) => r.state !== "error").map((r) => r.adapter) });
+  recordEvent("enable", name, {
+    to: results.filter((r) => r.state !== "error").map((r) => r.adapter),
+  });
   return { results };
 }
 
@@ -213,8 +239,10 @@ export function disableSkill(name: string, adapterIds: string[]): { results: Tar
     const lp = linkPathFor(a, name);
     const state = inspectLink(lp, target);
     if (state === "missing") return { adapter: id, state: "already" };
-    if (state === "conflict") return { adapter: id, state: "error", message: `${lp} 是真实目录而非联接，未动它` };
-    if (state === "foreign") return { adapter: id, state: "error", message: `${lp} 指向别处，未动它` };
+    if (state === "conflict")
+      return { adapter: id, state: "error", message: `${lp} 是真实目录而非联接，未动它` };
+    if (state === "foreign")
+      return { adapter: id, state: "error", message: `${lp} 指向别处，未动它` };
     try {
       removeLink(lp);
       return { adapter: id, state: "ok" };
@@ -229,7 +257,9 @@ export function disableSkill(name: string, adapterIds: string[]): { results: Tar
       m.updatedAt = nowIso();
     });
   }
-  recordEvent("disable", name, { from: results.filter((r) => r.state !== "error").map((r) => r.adapter) });
+  recordEvent("disable", name, {
+    from: results.filter((r) => r.state !== "error").map((r) => r.adapter),
+  });
   return { results };
 }
 
@@ -243,7 +273,9 @@ export function removeSkill(name: string): void {
     recordEvent("remove", name, { registryOnly: true });
     return;
   }
-  const active = loadAdapters().filter((a) => inspectLink(linkPathFor(a, name), dir) === "ok").map((a) => a.id);
+  const active = loadAdapters()
+    .filter((a) => inspectLink(linkPathFor(a, name), dir) === "ok")
+    .map((a) => a.id);
   if (active.length > 0) {
     throw new Error(`请先禁用再删除（当前启用于: ${active.join(", ")}）`);
   }
@@ -269,10 +301,16 @@ export function doctor(fix: boolean): DoctorIssue[] {
 
   for (const name of Object.keys(reg.skills)) {
     if (!fs.existsSync(skillDir(name))) {
-      issues.push({ type: "registry-missing-dir", name, message: `注册表有记录但库存目录缺失: ${name}`, fixed: fix });
-      if (fix) updateRegistry((r) => {
-        delete r.skills[name];
+      issues.push({
+        type: "registry-missing-dir",
+        name,
+        message: `注册表有记录但库存目录缺失: ${name}`,
+        fixed: fix,
       });
+      if (fix)
+        updateRegistry((r) => {
+          delete r.skills[name];
+        });
     }
   }
 
@@ -331,7 +369,13 @@ export function doctor(fix: boolean): DoctorIssue[] {
       const p = path.join(a.skillsDir, d);
       const lst = fs.lstatSync(p);
       if (!lst.isDirectory() || lst.isSymbolicLink() || regFinal.skills[d]) continue;
-      issues.push({ type: "unmanaged", name: d, adapter: a.id, message: `${a.id} 下存在未收编 Skill: ${d}（可用 adopt 收编）`, fixed: false });
+      issues.push({
+        type: "unmanaged",
+        name: d,
+        adapter: a.id,
+        message: `${a.id} 下存在未收编 Skill: ${d}（可用 adopt 收编）`,
+        fixed: false,
+      });
     }
   }
   return issues;
@@ -356,7 +400,10 @@ export function initPlatform(): { concepts: string[]; enableResults: TargetResul
     m.source = "repo";
     m.updatedAt = nowIso();
   });
-  const { results } = enableSkill("skill-helm", loadAdapters().map((a) => a.id));
+  const { results } = enableSkill(
+    "skill-helm",
+    loadAdapters().map((a) => a.id),
+  );
   recordEvent("init", "skill-helm", { concepts });
   return { concepts, enableResults: results };
 }

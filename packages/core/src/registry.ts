@@ -54,7 +54,8 @@ function acquireLock(): () => void {
         /* stat 失败说明锁已被释放，直接重试 */
         continue;
       }
-      if (Date.now() > deadline) throw new Error("registry 锁等待超时，请检查是否有其他 skill-helm 进程卡住");
+      if (Date.now() > deadline)
+        throw new Error("registry 锁等待超时，请检查是否有其他 skill-helm 进程卡住");
       sleepSync(50);
     }
   }

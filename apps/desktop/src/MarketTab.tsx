@@ -51,7 +51,9 @@ export default function MarketTab({ refresh }: { refresh: () => void }) {
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && search()}
         />
-        <button className="primary" onClick={search} disabled={loading}>{loading ? "搜索中…" : "搜索"}</button>
+        <button className="primary" onClick={search} disabled={loading}>
+          {loading ? "搜索中…" : "搜索"}
+        </button>
       </div>
       {notice && <div className="toast">{notice}</div>}
       <table className="grid">
@@ -69,7 +71,9 @@ export default function MarketTab({ refresh }: { refresh: () => void }) {
               <tr key={c.repo}>
                 <td className="mono">{c.repo}</td>
                 <td>{c.stars}</td>
-                <td className="desc" title={c.description}>{c.description || "-"}</td>
+                <td className="desc" title={c.description}>
+                  {c.description || "-"}
+                </td>
                 <td>
                   <button onClick={() => install(c.repo)}>安装</button>
                 </td>
@@ -79,11 +83,18 @@ export default function MarketTab({ refresh }: { refresh: () => void }) {
                   <td colSpan={4}>
                     该仓库包含多个 Skill：
                     {candidates[c.repo].map((s) => (
-                      <button key={s.name} className="chip" title={s.description} onClick={() => install(c.repo, s.name)}>
+                      <button
+                        key={s.name}
+                        className="chip"
+                        title={s.description}
+                        onClick={() => install(c.repo, s.name)}
+                      >
                         {s.name}
                       </button>
                     ))}
-                    <button className="chip on" onClick={() => install(c.repo, "all")}>全部安装</button>
+                    <button className="chip on" onClick={() => install(c.repo, "all")}>
+                      全部安装
+                    </button>
                   </td>
                 </tr>
               )}
@@ -91,7 +102,9 @@ export default function MarketTab({ refresh }: { refresh: () => void }) {
           ))}
           {results.length === 0 && !loading && (
             <tr>
-              <td colSpan={4} className="empty">输入描述并搜索；安装后进库存、默认禁用，随时可清理</td>
+              <td colSpan={4} className="empty">
+                输入描述并搜索；安装后进库存、默认禁用，随时可清理
+              </td>
             </tr>
           )}
         </tbody>

@@ -7,7 +7,9 @@ export const NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 export function assertValidName(name: string): void {
   if (!NAME_RE.test(name)) {
-    throw new Error(`非法 Skill 名 "${name}"：须为小写字母/数字，单词间用连字符（如 video-summary）`);
+    throw new Error(
+      `非法 Skill 名 "${name}"：须为小写字母/数字，单词间用连字符（如 video-summary）`,
+    );
   }
 }
 

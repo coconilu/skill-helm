@@ -22,8 +22,14 @@ export function truncate(s: string, max: number): string {
 }
 
 export function table(headers: string[], rows: string[][]): string {
-  const widths = headers.map((h, i) => Math.max(displayWidth(h), ...rows.map((r) => displayWidth(r[i] ?? ""))));
-  const line = (cells: string[]) => cells.map((c, i) => pad(c, widths[i])).join("  ").trimEnd();
+  const widths = headers.map((h, i) =>
+    Math.max(displayWidth(h), ...rows.map((r) => displayWidth(r[i] ?? ""))),
+  );
+  const line = (cells: string[]) =>
+    cells
+      .map((c, i) => pad(c, widths[i]))
+      .join("  ")
+      .trimEnd();
   const sep = widths.map((w) => "-".repeat(Math.min(w, 60))).join("  ");
   return [line(headers), sep, ...rows.map(line)].join("\n");
 }

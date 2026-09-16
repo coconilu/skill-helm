@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
-import {
-  dismiss,
-  install,
-  runCheck,
-  useUpdates,
-} from "./updates";
+import { dismiss, install, runCheck, useUpdates } from "./updates";
 
 interface Props {
   onClose: () => void;
@@ -74,7 +69,9 @@ export default function AboutPanel({ onClose }: Props) {
           ) : versionError ? (
             <span>
               <span className="error">读取失败：{versionError}</span>{" "}
-              <button type="button" onClick={loadVersion}>重试</button>
+              <button type="button" onClick={loadVersion}>
+                重试
+              </button>
             </span>
           ) : (
             <span className="meta-line">读取中…</span>
@@ -84,15 +81,17 @@ export default function AboutPanel({ onClose }: Props) {
         <div className="panel-section">
           <div className="panel-title">更新</div>
           <div className="about-row">
-            <button type="button" onClick={() => void runCheck()} disabled={s.checkStatus === "checking" || busy}>
+            <button
+              type="button"
+              onClick={() => void runCheck()}
+              disabled={s.checkStatus === "checking" || busy}
+            >
               {s.checkStatus === "checking" ? "正在检查…" : "检查更新"}
             </button>
           </div>
           <div className="about-status" aria-live="polite">
             {s.checkStatus === "latest" && <span className="ok">已是最新版本</span>}
-            {s.checkStatus === "error" && (
-              <span className="error">检查失败：{s.checkError}</span>
-            )}
+            {s.checkStatus === "error" && <span className="error">检查失败：{s.checkError}</span>}
             {s.availableVersion && (
               <div>
                 发现新版本 <b className="mono">v{s.availableVersion}</b>
@@ -109,19 +108,24 @@ export default function AboutPanel({ onClose }: Props) {
                   ? `：${formatBytes(s.downloadedBytes)} / ${formatBytes(s.totalBytes)}`
                   : "…"}
                 {percent !== null && (
-                  <progress className="about-progress" max={100} value={percent} aria-label="下载进度" />
+                  <progress
+                    className="about-progress"
+                    max={100}
+                    value={percent}
+                    aria-label="下载进度"
+                  />
                 )}
               </div>
             )}
             {s.installStatus === "done" && (
-              <div className="ok">
-                更新已安装。应用即将自动重启；若未自动重启，请手动重新打开。
-              </div>
+              <div className="ok">更新已安装。应用即将自动重启；若未自动重启，请手动重新打开。</div>
             )}
             {s.installStatus === "error" && (
               <div>
                 <span className="error">安装失败：{s.installError}</span>{" "}
-                <button type="button" onClick={() => void install()}>重试</button>
+                <button type="button" onClick={() => void install()}>
+                  重试
+                </button>
               </div>
             )}
           </div>

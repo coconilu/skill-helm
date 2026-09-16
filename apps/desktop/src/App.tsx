@@ -19,23 +19,34 @@ export default function App() {
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
   const updates = useUpdates();
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshKey 为刻意多带的依赖，用作刷新触发器，effect 本身不消费
   useEffect(() => {
-    api.meta().then(setMeta).catch((e: Error) => setFatal(e.message));
-    api.doctor().then((r) => setDoctorIssues(r.issues)).catch(() => setDoctorIssues([]));
+    api
+      .meta()
+      .then(setMeta)
+      .catch((e: Error) => setFatal(e.message));
+    api
+      .doctor()
+      .then((r) => setDoctorIssues(r.issues))
+      .catch(() => setDoctorIssues([]));
   }, [refreshKey]);
 
   // 应用级更新轮询：启动一次，此后每 30 分钟；状态在 updates 模块共享
   useEffect(() => startPolling(), []);
 
   const showToast = shouldShowToast(updates);
-  const installBusy = updates.installStatus === "downloading" || updates.installStatus === "installing";
+  const installBusy =
+    updates.installStatus === "downloading" || updates.installStatus === "installing";
 
   if (fatal) {
     return (
       <div className="fatal">
         <h2>无法连接 Skill Helm API</h2>
         <p>{fatal}</p>
-        <p>请确认已通过 Tauri 启动，或先运行 <code>skill-helm serve</code> 并以 VITE_API_ORIGIN 调试。</p>
+        <p>
+          请确认已通过 Tauri 启动，或先运行 <code>skill-helm serve</code> 并以 VITE_API_ORIGIN
+          调试。
+        </p>
       </div>
     );
   }
@@ -55,7 +66,9 @@ export default function App() {
             </button>
           ))}
         </nav>
-        <button className="refresh-btn" title="刷新数据" onClick={refresh}>⟳ 刷新</button>
+        <button className="refresh-btn" title="刷新数据" onClick={refresh}>
+          ⟳ 刷新
+        </button>
         {doctorIssues.length > 0 && (
           <span className="doctor-badge" title={doctorIssues.map((i) => i.message).join("\n")}>
             ⚠ {doctorIssues.length} 项待处理
@@ -88,7 +101,12 @@ export default function App() {
             )}
           </div>
           {updates.installStatus !== "error" && (
-            <button type="button" className="primary" onClick={() => void install()} disabled={installBusy}>
+            <button
+              type="button"
+              className="primary"
+              onClick={() => void install()}
+              disabled={installBusy}
+            >
               立即更新
             </button>
           )}

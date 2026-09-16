@@ -25,7 +25,12 @@ afterEach(() => env.cleanup());
 
 describe("create / list / show", () => {
   it("create 生成模板并登记，list 可见，show 有描述", () => {
-    createSkill({ name: "demo-skill", description: "演示用的 skill", categories: ["dev"], groups: ["g1"] });
+    createSkill({
+      name: "demo-skill",
+      description: "演示用的 skill",
+      categories: ["dev"],
+      groups: ["g1"],
+    });
     const list = listSkills();
     expect(list.map((s) => s.name)).toEqual(["demo-skill"]);
     expect(list[0].status).toBe("disabled");
@@ -102,10 +107,14 @@ describe("adopt", () => {
     expect(summary.source).toBe("adopted");
     expect(summary.enabledIn).toEqual(["codex"]);
     expect(fs.existsSync(path.join(skillDir("my-skill"), "SKILL.md"))).toBe(true);
-    expect(fs.lstatSync(path.join(env.skillsDirFor("codex"), "my-skill")).isSymbolicLink()).toBe(true);
+    expect(fs.lstatSync(path.join(env.skillsDirFor("codex"), "my-skill")).isSymbolicLink()).toBe(
+      true,
+    );
     expect(conflicts.map((c) => c.adapter)).toEqual(["kimi"]);
     // kimi 下的真实目录未被触碰
-    expect(fs.lstatSync(path.join(env.skillsDirFor("kimi"), "my-skill")).isSymbolicLink()).toBe(false);
+    expect(fs.lstatSync(path.join(env.skillsDirFor("kimi"), "my-skill")).isSymbolicLink()).toBe(
+      false,
+    );
   });
 
   it("非 Skill 目录拒绝收编", () => {

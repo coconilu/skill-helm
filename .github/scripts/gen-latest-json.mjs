@@ -22,9 +22,7 @@ if (!fs.existsSync(distDir)) fail(`产物目录不存在: ${distDir}`);
 const repo = process.env.GITHUB_REPOSITORY;
 if (!repo) fail("环境变量 GITHUB_REPOSITORY 未设置（本地调试可手动 export）");
 
-const pkgVersion = JSON.parse(
-  fs.readFileSync("apps/desktop/package.json", "utf8"),
-).version;
+const pkgVersion = JSON.parse(fs.readFileSync("apps/desktop/package.json", "utf8")).version;
 
 // tag 形如 v1.2.3 或 v1.2.3-issue12（issue 触发的预发布，version 字段仍用正式版本号）
 const issueBase = tag.match(/^v(.+)-issue\d+$/)?.[1] ?? tag;
@@ -35,19 +33,16 @@ if (pkgVersion !== tagVersion) {
 }
 
 const walk = (dir) =>
-  fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-    e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)],
-  );
+  fs
+    .readdirSync(dir, { withFileTypes: true })
+    .flatMap((e) => (e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]));
 const files = walk(distDir).map((f) => path.normalize(f).replaceAll("\\", "/"));
 
-const pick = (suffix) =>
-  files.find((f) => f.endsWith(suffix) && !f.endsWith(".sig"));
+const pick = (suffix) => files.find((f) => f.endsWith(suffix) && !f.endsWith(".sig"));
 const readSignature = (file, platform) => {
   const sigFile = `${file}.sig`;
   if (!files.includes(sigFile)) {
-    fail(
-      `未找到 ${platform} 的签名文件 ${sigFile}（TAURI_SIGNING_PRIVATE_KEY 未生效？）`,
-    );
+    fail(`未找到 ${platform} 的签名文件 ${sigFile}（TAURI_SIGNING_PRIVATE_KEY 未生效？）`);
   }
   return fs.readFileSync(sigFile, "utf8").trim();
 };
@@ -61,9 +56,7 @@ if (!tarball) fail(`未在 ${distDir} 找到 darwin-aarch64 产物 (*.app.tar.gz
 const darwinSignature = readSignature(tarball, "darwin-aarch64");
 
 // NSIS 安装包命名: <产品名>_<版本>_<架构>-setup.exe，文件名中的版本必须与 tag 一致
-const exeVersion = path
-  .basename(exe)
-  .match(/_(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.]+)?)_/)?.[1];
+const exeVersion = path.basename(exe).match(/_(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.]+)?)_/)?.[1];
 if (!exeVersion) fail(`无法从安装包文件名解析版本号: ${exe}`);
 if (exeVersion !== tagVersion) {
   fail(`安装包文件名中的版本 ${exeVersion} 与 tag ${tag} 不一致: ${exe}`);

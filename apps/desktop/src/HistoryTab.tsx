@@ -3,10 +3,18 @@ import { api } from "./api";
 import type { HistoryEvent } from "./types";
 
 export default function HistoryTab({ refreshKey }: { refreshKey: number }) {
-  const [data, setData] = useState<{ enabled: boolean; path?: string; events: HistoryEvent[] } | null>(null);
+  const [data, setData] = useState<{
+    enabled: boolean;
+    path?: string;
+    events: HistoryEvent[];
+  } | null>(null);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshKey 为刻意多带的依赖，用作刷新触发器，effect 本身不消费
   useEffect(() => {
-    api.history().then(setData).catch(() => setData({ enabled: false, events: [] }));
+    api
+      .history()
+      .then(setData)
+      .catch(() => setData({ enabled: false, events: [] }));
   }, [refreshKey]);
 
   if (!data) return <div className="page">加载中…</div>;
@@ -15,15 +23,23 @@ export default function HistoryTab({ refreshKey }: { refreshKey: number }) {
       <div className="page">
         <div className="empty-card">
           <h3>历史记录未启用</h3>
-          <p>这是可选功能：创建一个空项目来保存 Skill 的变更历史（create / update / enable / install 等事件）。</p>
-          <p>在终端执行：<code>skill-helm history init &lt;空目录&gt;</code>，之后回到本页即可看到时间线。</p>
+          <p>
+            这是可选功能：创建一个空项目来保存 Skill 的变更历史（create / update / enable / install
+            等事件）。
+          </p>
+          <p>
+            在终端执行：<code>skill-helm history init &lt;空目录&gt;</code>
+            ，之后回到本页即可看到时间线。
+          </p>
         </div>
       </div>
     );
   }
   return (
     <div className="page">
-      <p className="meta-line">历史项目：{data.path}（共 {data.events.length} 条，按时间倒序）</p>
+      <p className="meta-line">
+        历史项目：{data.path}（共 {data.events.length} 条，按时间倒序）
+      </p>
       <table className="grid">
         <thead>
           <tr>
@@ -35,6 +51,7 @@ export default function HistoryTab({ refreshKey }: { refreshKey: number }) {
         </thead>
         <tbody>
           {data.events.map((e, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: 历史事件为只追加的日志行，无稳定 ID，整表随刷新整体重渲染，index 作 key 可接受
             <tr key={i}>
               <td className="mono">{e.time.slice(0, 19).replace("T", " ")}</td>
               <td>{e.type}</td>

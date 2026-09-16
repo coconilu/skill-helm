@@ -4,7 +4,11 @@ import type { AdapterConfig, LinkState } from "./types";
 
 /** Windows 路径比较：大小写不敏感、忽略尾部分隔符。 */
 export function samePath(a: string, b: string): boolean {
-  const norm = (s: string) => path.resolve(s).replace(/[\\/]+$/g, "").toLowerCase();
+  const norm = (s: string) =>
+    path
+      .resolve(s)
+      .replace(/[\\/]+$/g, "")
+      .toLowerCase();
   return norm(a) === norm(b);
 }
 

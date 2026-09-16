@@ -31,7 +31,10 @@ for (let y = 0; y < S; y++) {
     }
     for (let k = 0; k < 8; k++) {
       const a = (k * Math.PI) / 4;
-      const hd = Math.hypot(x - (cx + Math.cos(a) * (R + RING_W + 16)), y - (cy + Math.sin(a) * (R + RING_W + 16)));
+      const hd = Math.hypot(
+        x - (cx + Math.cos(a) * (R + RING_W + 16)),
+        y - (cy + Math.sin(a) * (R + RING_W + 16)),
+      );
       if (hd <= 17) c = ACCENT;
     }
     const i = (y * S + x) * 4;

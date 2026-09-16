@@ -25,7 +25,8 @@ export function loadAdapters(): AdapterConfig[] {
   const envDir = process.env.SKILL_HELM_ADAPTERS_DIR;
   const map = new Map<string, AdapterConfig>();
   if (!envDir) {
-    for (const a of DEFAULT_ADAPTERS) map.set(a.id, { id: a.id, skillsDir: expandHome(a.skillsDir), covers: a.covers });
+    for (const a of DEFAULT_ADAPTERS)
+      map.set(a.id, { id: a.id, skillsDir: expandHome(a.skillsDir), covers: a.covers });
   }
   const dirs = envDir ? [path.resolve(envDir)] : [paths.adapters()];
   for (const dir of dirs) {
@@ -43,7 +44,9 @@ export function loadAdapters(): AdapterConfig[] {
 export function getAdapter(id: string): AdapterConfig {
   const adapter = loadAdapters().find((a) => a.id === id);
   if (!adapter) {
-    const known = loadAdapters().map((a) => a.id).join(", ");
+    const known = loadAdapters()
+      .map((a) => a.id)
+      .join(", ");
     throw new Error(`未知 agent 适配器: ${id}（当前已知: ${known || "无"}）`);
   }
   return adapter;
