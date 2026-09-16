@@ -51,7 +51,10 @@ function str(v: string | boolean | undefined): string | undefined {
 function csv(v: string | boolean | undefined): string[] | undefined {
   const s = str(v);
   if (!s) return undefined;
-  return s.split(",").map((x) => x.trim()).filter(Boolean);
+  return s
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
 }
 
 function need(value: unknown, what: string): string {
@@ -146,7 +149,9 @@ function main(argv: string[]): void {
               `来源:     ${s.source}`,
               `描述:     ${s.description || "-"}`,
               `更新于:   ${s.updatedAt}`,
-              issues.length ? `lint:     ${issues.map((i) => `[${i.level}] ${i.message}`).join("；")}` : "lint:     通过",
+              issues.length
+                ? `lint:     ${issues.map((i) => `[${i.level}] ${i.message}`).join("；")}`
+                : "lint:     通过",
             ].join("\n") + "\n",
           );
         }
@@ -198,9 +203,13 @@ function main(argv: string[]): void {
         });
         if (values.json) printJson(result);
         else {
-          process.stdout.write(`已收编 ${result.summary.name}（启用于: ${result.summary.enabledIn.join(", ") || "-"}）\n`);
+          process.stdout.write(
+            `已收编 ${result.summary.name}（启用于: ${result.summary.enabledIn.join(", ") || "-"}）\n`,
+          );
           for (const c of result.conflicts) {
-            process.stdout.write(`注意: ${c.adapter} 下存在同名真实目录 ${c.path}，未动它，请人工确认后处理\n`);
+            process.stdout.write(
+              `注意: ${c.adapter} 下存在同名真实目录 ${c.path}，未动它，请人工确认后处理\n`,
+            );
           }
         }
         return;
@@ -214,9 +223,14 @@ function main(argv: string[]): void {
         const name = need(positionals[0], "<name>");
         const targets = csv(cmd === "enable" ? values.to : (values.from ?? values.to));
         if (!targets || targets.length === 0) {
-          throw new Error(cmd === "enable" ? "缺少 --to（如 --to codex,kimi-code）" : "缺少 --from（如 --from codex）");
+          throw new Error(
+            cmd === "enable"
+              ? "缺少 --to（如 --to codex,kimi-code）"
+              : "缺少 --from（如 --from codex）",
+          );
         }
-        const { results } = cmd === "enable" ? core.enableSkill(name, targets) : core.disableSkill(name, targets);
+        const { results } =
+          cmd === "enable" ? core.enableSkill(name, targets) : core.disableSkill(name, targets);
         if (values.json) {
           printJson({ results });
           if (results.some((r) => r.state === "error")) process.exit(1);
@@ -236,9 +250,15 @@ function main(argv: string[]): void {
         const { values, positionals } = parse(rest, { set: { type: "string" } });
         const name = need(positionals[0], "<name>");
         const set = csv(values.set) ?? [];
-        const summary = cmd === "categorize" ? core.updateSkill(name, { categories: set }) : core.updateSkill(name, { groups: set });
+        const summary =
+          cmd === "categorize"
+            ? core.updateSkill(name, { categories: set })
+            : core.updateSkill(name, { groups: set });
         if (values.json) printJson(summary);
-        else process.stdout.write(`已更新 ${name}: 分类=[${summary.categories.join(",")}] 分组=[${summary.groups.join(",")}]\n`);
+        else
+          process.stdout.write(
+            `已更新 ${name}: 分类=[${summary.categories.join(",")}] 分组=[${summary.groups.join(",")}]\n`,
+          );
         return;
       }
       case "concepts": {
@@ -247,7 +267,13 @@ function main(argv: string[]): void {
         if (sub === "list") {
           const list = core.listConcepts();
           if (values.json) printJson(list);
-          else process.stdout.write(table(["主题", "标题"], list.map((c) => [c.name, c.title])) + "\n");
+          else
+            process.stdout.write(
+              table(
+                ["主题", "标题"],
+                list.map((c) => [c.name, c.title]),
+              ) + "\n",
+            );
         } else if (sub === "show") {
           const content = core.showConcept(need(positionals[1], "<topic>"));
           if (values.json) printJson({ topic: positionals[1], content });
@@ -274,17 +300,26 @@ function main(argv: string[]): void {
         } else if (sub === "status") {
           const status = core.historyStatus();
           if (values.json) printJson(status);
-          else if (!status.enabled) process.stdout.write("未启用（history init <path> 可配置一个空项目来记录历史）\n");
+          else if (!status.enabled)
+            process.stdout.write("未启用（history init <path> 可配置一个空项目来记录历史）\n");
           else process.stdout.write(`已启用: ${status.path}，共 ${status.events} 条事件\n`);
         } else if (sub === "list") {
           const limitRaw = str(values.limit);
-          const events = core.listHistory({ name: str(values.name), limit: limitRaw ? Number(limitRaw) : undefined });
+          const events = core.listHistory({
+            name: str(values.name),
+            limit: limitRaw ? Number(limitRaw) : undefined,
+          });
           if (values.json) printJson(events);
           else {
             process.stdout.write(
               table(
                 ["时间", "类型", "对象", "详情"],
-                events.map((e) => [e.time.slice(0, 19).replace("T", " "), e.type, e.name ?? "-", e.detail ? truncate(JSON.stringify(e.detail), 50) : "-"]),
+                events.map((e) => [
+                  e.time.slice(0, 19).replace("T", " "),
+                  e.type,
+                  e.name ?? "-",
+                  e.detail ? truncate(JSON.stringify(e.detail), 50) : "-",
+                ]),
               ) + "\n",
             );
           }
@@ -308,7 +343,9 @@ function main(argv: string[]): void {
                 candidates.map((c) => [c.repo, String(c.stars), truncate(c.description, 60)]),
               ) + "\n",
             );
-            process.stdout.write("\n用 install <owner/repo> 安装；含多个 Skill 时会列出候选供选择\n");
+            process.stdout.write(
+              "\n用 install <owner/repo> 安装；含多个 Skill 时会列出候选供选择\n",
+            );
           }
         });
         return;
@@ -325,7 +362,11 @@ function main(argv: string[]): void {
                 "该仓库包含多个 Skill：\n" +
                   table(
                     ["名称", "目录", "描述"],
-                    result.candidates.map((c) => [c.name, c.relativeDir, truncate(c.description, 50)]),
+                    result.candidates.map((c) => [
+                      c.name,
+                      c.relativeDir,
+                      truncate(c.description, 50),
+                    ]),
                   ) +
                   `\n请用 --skill <name> 指定一个，或 --skill all 全部安装\n`,
               );
@@ -337,7 +378,8 @@ function main(argv: string[]): void {
             for (const s of result.installed) {
               const warn = s.issues.filter((i) => i.level !== "warning" || true).length;
               process.stdout.write(`已安装 ${s.name}（在库存中，默认未启用；用 enable 试用）\n`);
-              if (warn > 0) process.stdout.write(`  lint 提醒: ${s.issues.map((i) => i.message).join("；")}\n`);
+              if (warn > 0)
+                process.stdout.write(`  lint 提醒: ${s.issues.map((i) => i.message).join("；")}\n`);
             }
           }
         });
@@ -348,7 +390,8 @@ function main(argv: string[]): void {
         const portRaw = str(values.port);
         runAsync(Boolean(values.json), async () => {
           const info = await startServer({ port: portRaw ? Number(portRaw) : undefined });
-          if (!values.json) process.stderr.write(`Skill Helm API 已启动: ${info.origin}（仅回环，Ctrl+C 停止）\n`);
+          if (!values.json)
+            process.stderr.write(`Skill Helm API 已启动: ${info.origin}（仅回环，Ctrl+C 停止）\n`);
           else printJson(info);
         });
         return;
@@ -358,7 +401,10 @@ function main(argv: string[]): void {
         const { issues } = core.getSkill(need(positionals[0], "<name>"));
         if (values.json) printJson({ issues });
         else if (issues.length === 0) process.stdout.write("通过\n");
-        else process.stdout.write(issues.map((i) => `[${i.level}] ${i.rule}: ${i.message}`).join("\n") + "\n");
+        else
+          process.stdout.write(
+            issues.map((i) => `[${i.level}] ${i.rule}: ${i.message}`).join("\n") + "\n",
+          );
         if (issues.some((i) => i.level === "error")) process.exit(1);
         return;
       }
@@ -371,7 +417,12 @@ function main(argv: string[]): void {
           process.stdout.write(
             table(
               ["类型", "对象", "说明", values.fix ? "已修复" : ""].filter(Boolean),
-              issues.map((i) => [i.type, [i.adapter, i.name].filter(Boolean).join(":"), i.message, values.fix ? (i.fixed ? "是" : "否") : ""]),
+              issues.map((i) => [
+                i.type,
+                [i.adapter, i.name].filter(Boolean).join(":"),
+                i.message,
+                values.fix ? (i.fixed ? "是" : "否") : "",
+              ]),
             ) + "\n",
           );
         }

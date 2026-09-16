@@ -23,12 +23,18 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
   const [pickGroup, setPickGroup] = useState("");
 
   const load = useCallback(() => {
-    api.skills(filter).then(setSkills).catch((e: Error) => setNotice(e.message));
+    api
+      .skills(filter)
+      .then(setSkills)
+      .catch((e: Error) => setNotice(e.message));
   }, [filter]);
 
   // 未过滤的全量列表：用于派生分类/分组及其计数，不随过滤条件收缩
   const loadCatalog = useCallback(() => {
-    api.skills({}).then(setCatalog).catch(() => {});
+    api
+      .skills({})
+      .then(setCatalog)
+      .catch(() => {});
   }, []);
 
   useEffect(load, [load, refreshKey]);
@@ -109,8 +115,14 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
     try {
       await api.update(detail.summary.name, {
         description: editDesc,
-        categories: editCats.split(",").map((s) => s.trim()).filter(Boolean),
-        groups: editGroups.split(",").map((s) => s.trim()).filter(Boolean),
+        categories: editCats
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        groups: editGroups
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
       });
       tell("已保存");
       await openDetail(detail.summary.name);
@@ -122,7 +134,8 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
 
   const removeSkill = async () => {
     if (!detail) return;
-    if (!window.confirm(`确定删除 ${detail.summary.name}？文件将从库存移除（需先全部禁用）。`)) return;
+    if (!window.confirm(`确定删除 ${detail.summary.name}？文件将从库存移除（需先全部禁用）。`))
+      return;
     try {
       await api.remove(detail.summary.name);
       setDetail(null);
@@ -145,7 +158,9 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
     if (!adoptPath.trim()) return;
     try {
       const r = await api.adopt(adoptPath.trim());
-      tell(`已收编 ${r.summary.name}${r.conflicts.length ? `；但 ${r.conflicts.map((c) => c.adapter).join("、")} 下已存在同名目录，请手动处理` : ""}`);
+      tell(
+        `已收编 ${r.summary.name}${r.conflicts.length ? `；但 ${r.conflicts.map((c) => c.adapter).join("、")} 下已存在同名目录，请手动处理` : ""}`,
+      );
       setAdoptPath("");
       reload();
     } catch (e) {
@@ -179,7 +194,7 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
       tell(
         mode === "add"
           ? `已将 ${targets.length} 个技能加入「${group}」`
-          : `已将 ${targets.length} 个技能移出「${group}」`
+          : `已将 ${targets.length} 个技能移出「${group}」`,
       );
       setSelected(new Set());
       reload();
@@ -206,11 +221,18 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
     <div className="page skills-page">
       <div className="skills-content">
         <div className="toolbar">
-          <button className={!filter.category ? "chip on" : "chip"} onClick={() => updateFilter({ ...filter, category: undefined })}>
+          <button
+            className={!filter.category ? "chip on" : "chip"}
+            onClick={() => updateFilter({ ...filter, category: undefined })}
+          >
             全部
           </button>
           {categories.map((c) => (
-            <button key={c} className={filter.category === c ? "chip on" : "chip"} onClick={() => updateFilter({ ...filter, category: c })}>
+            <button
+              key={c}
+              className={filter.category === c ? "chip on" : "chip"}
+              onClick={() => updateFilter({ ...filter, category: c })}
+            >
               {c}
             </button>
           ))}
@@ -236,7 +258,12 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
           <thead>
             <tr>
               <th>
-                <input type="checkbox" checked={allVisibleSelected} onChange={toggleAll} title="全选" />
+                <input
+                  type="checkbox"
+                  checked={allVisibleSelected}
+                  onChange={toggleAll}
+                  title="全选"
+                />
               </th>
               <th>名称</th>
               <th>描述</th>
@@ -246,22 +273,46 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
           </thead>
           <tbody>
             {skills.map((s) => (
-              <tr key={s.name} onClick={() => openDetail(s.name)} className={detail?.summary.name === s.name ? "selected" : ""}>
+              <tr
+                key={s.name}
+                onClick={() => openDetail(s.name)}
+                className={detail?.summary.name === s.name ? "selected" : ""}
+              >
                 <td onClick={(e) => e.stopPropagation()}>
-                  <input type="checkbox" checked={selected.has(s.name)} onChange={() => toggleOne(s.name)} />
+                  <input
+                    type="checkbox"
+                    checked={selected.has(s.name)}
+                    onChange={() => toggleOne(s.name)}
+                  />
                 </td>
                 <td className="mono">
                   {s.name}
-                  <button className="copy-btn" title="复制名称" onClick={(e) => { e.stopPropagation(); copyName(s.name); }}>⧉</button>
+                  <button
+                    className="copy-btn"
+                    title="复制名称"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyName(s.name);
+                    }}
+                  >
+                    ⧉
+                  </button>
                 </td>
-                <td className="desc" title={s.description}>{s.description || "-"}</td>
+                <td className="desc" title={s.description}>
+                  {s.description || "-"}
+                </td>
                 <td>{s.categories.join(", ") || "-"}</td>
                 <td onClick={(e) => e.stopPropagation()}>
                   <span className="chips">
                     {(meta?.adapters ?? []).map((a) => {
                       const on = s.enabledIn.includes(a.id);
                       return (
-                        <button key={a.id} className={on ? "chip on" : "chip"} title={on ? "点击禁用" : "点击启用"} onClick={() => toggle(s.name, a.id, on, s.enabledIn)}>
+                        <button
+                          key={a.id}
+                          className={on ? "chip on" : "chip"}
+                          title={on ? "点击禁用" : "点击启用"}
+                          onClick={() => toggle(s.name, a.id, on, s.enabledIn)}
+                        >
                           {a.id}
                         </button>
                       );
@@ -272,74 +323,96 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
             ))}
             {skills.length === 0 && (
               <tr>
-                <td colSpan={5} className="empty">暂无 Skill——用上方收编、市场安装，或让 Agent 创建一个</td>
+                <td colSpan={5} className="empty">
+                  暂无 Skill——用上方收编、市场安装，或让 Agent 创建一个
+                </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
       <aside className="group-panel">
-          <div className="panel-section">
-            <div className="panel-title">状态</div>
-            <button className={!activeStatus ? "group-item active" : "group-item"} onClick={() => updateFilter({ ...filter, status: undefined })}>
-              <span className="group-name">全部</span>
-              <span className="count">{catalog.length}</span>
+        <div className="panel-section">
+          <div className="panel-title">状态</div>
+          <button
+            className={!activeStatus ? "group-item active" : "group-item"}
+            onClick={() => updateFilter({ ...filter, status: undefined })}
+          >
+            <span className="group-name">全部</span>
+            <span className="count">{catalog.length}</span>
+          </button>
+          <button
+            className={activeStatus === "enabled" ? "group-item active" : "group-item"}
+            onClick={() => updateFilter({ ...filter, status: "enabled" })}
+          >
+            <span className="group-name">启用</span>
+            <span className="count">{statusCount("enabled")}</span>
+          </button>
+          <button
+            className={activeStatus === "disabled" ? "group-item active" : "group-item"}
+            onClick={() => updateFilter({ ...filter, status: "disabled" })}
+          >
+            <span className="group-name">禁用</span>
+            <span className="count">{statusCount("disabled")}</span>
+          </button>
+        </div>
+        <div className="panel-section">
+          <div className="panel-title">分组</div>
+          <button
+            className={!activeGroup ? "group-item active" : "group-item"}
+            onClick={() => updateFilter({ ...filter, group: undefined })}
+          >
+            <span className="group-name">全部</span>
+            <span className="count">{catalog.length}</span>
+          </button>
+          {groups.map((g) => (
+            <button
+              key={g}
+              className={activeGroup === g ? "group-item active" : "group-item"}
+              onClick={() => updateFilter({ ...filter, group: g })}
+            >
+              <span className="group-name">{g}</span>
+              <span className="count">{groupCount(g)}</span>
             </button>
-            <button className={activeStatus === "enabled" ? "group-item active" : "group-item"} onClick={() => updateFilter({ ...filter, status: "enabled" })}>
-              <span className="group-name">启用</span>
-              <span className="count">{statusCount("enabled")}</span>
+          ))}
+        </div>
+        {selected.size > 0 && (
+          <div className="batch-box">
+            <div className="panel-title">已选 {selected.size} 项</div>
+            <select value={pickGroup} onChange={(e) => setPickGroup(e.target.value)}>
+              <option value="">选择已有分组…</option>
+              {groups.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+            <button
+              disabled={!pickGroup}
+              onClick={() => {
+                applyGroup(pickGroup, "add");
+                setPickGroup("");
+              }}
+            >
+              加入该分组
             </button>
-            <button className={activeStatus === "disabled" ? "group-item active" : "group-item"} onClick={() => updateFilter({ ...filter, status: "disabled" })}>
-              <span className="group-name">禁用</span>
-              <span className="count">{statusCount("disabled")}</span>
+            {activeGroup && (
+              <button onClick={() => applyGroup(activeGroup, "remove")}>
+                移出「{activeGroup}」
+              </button>
+            )}
+            <input
+              placeholder="新分组名"
+              value={newGroup}
+              onChange={(e) => setNewGroup(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && createGroup()}
+            />
+            <button className="primary" disabled={!newGroup.trim()} onClick={createGroup}>
+              {groups.includes(newGroup.trim()) ? `加入「${newGroup.trim()}」` : "新建分组并加入"}
             </button>
           </div>
-          <div className="panel-section">
-            <div className="panel-title">分组</div>
-            <button className={!activeGroup ? "group-item active" : "group-item"} onClick={() => updateFilter({ ...filter, group: undefined })}>
-              <span className="group-name">全部</span>
-              <span className="count">{catalog.length}</span>
-            </button>
-            {groups.map((g) => (
-              <button key={g} className={activeGroup === g ? "group-item active" : "group-item"} onClick={() => updateFilter({ ...filter, group: g })}>
-                <span className="group-name">{g}</span>
-                <span className="count">{groupCount(g)}</span>
-              </button>
-            ))}
-          </div>
-          {selected.size > 0 && (
-            <div className="batch-box">
-              <div className="panel-title">已选 {selected.size} 项</div>
-              <select value={pickGroup} onChange={(e) => setPickGroup(e.target.value)}>
-                <option value="">选择已有分组…</option>
-                {groups.map((g) => (
-                  <option key={g} value={g}>{g}</option>
-                ))}
-              </select>
-              <button
-                disabled={!pickGroup}
-                onClick={() => {
-                  applyGroup(pickGroup, "add");
-                  setPickGroup("");
-                }}
-              >
-                加入该分组
-              </button>
-              {activeGroup && (
-                <button onClick={() => applyGroup(activeGroup, "remove")}>移出「{activeGroup}」</button>
-              )}
-              <input
-                placeholder="新分组名"
-                value={newGroup}
-                onChange={(e) => setNewGroup(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && createGroup()}
-              />
-              <button className="primary" disabled={!newGroup.trim()} onClick={createGroup}>
-                {groups.includes(newGroup.trim()) ? `加入「${newGroup.trim()}」` : "新建分组并加入"}
-              </button>
-            </div>
-          )}
-        </aside>
+        )}
+      </aside>
 
       {detail && (
         <div className="drawer-mask" onClick={() => setDetail(null)}>
@@ -347,19 +420,36 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
             <header>
               <h3 className="mono">
                 {detail.summary.name}
-                <button className="copy-btn" title="复制名称" onClick={() => copyName(detail.summary.name)}>⧉</button>
+                <button
+                  className="copy-btn"
+                  title="复制名称"
+                  onClick={() => copyName(detail.summary.name)}
+                >
+                  ⧉
+                </button>
               </h3>
-              <button className="close" onClick={() => setDetail(null)}>×</button>
+              <button className="close" onClick={() => setDetail(null)}>
+                ×
+              </button>
             </header>
             <label>描述</label>
-            <textarea className="desc-input" rows={7} value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
+            <textarea
+              className="desc-input"
+              rows={7}
+              value={editDesc}
+              onChange={(e) => setEditDesc(e.target.value)}
+            />
             <label>分类（逗号分隔）</label>
             <input value={editCats} onChange={(e) => setEditCats(e.target.value)} />
             <label>分组（逗号分隔）</label>
             <input value={editGroups} onChange={(e) => setEditGroups(e.target.value)} />
             <div className="row">
-              <button className="primary" onClick={saveDetail}>保存</button>
-              <button className="danger" onClick={removeSkill}>删除</button>
+              <button className="primary" onClick={saveDetail}>
+                保存
+              </button>
+              <button className="danger" onClick={removeSkill}>
+                删除
+              </button>
             </div>
             <label>文件</label>
             <div className="row">
@@ -371,7 +461,14 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
               {(meta?.adapters ?? []).map((a) => {
                 const on = detail.summary.enabledIn.includes(a.id);
                 return (
-                  <button key={a.id} className={on ? "chip on" : "chip"} onClick={async () => { await toggle(detail.summary.name, a.id, on, detail.summary.enabledIn); await openDetail(detail.summary.name); }}>
+                  <button
+                    key={a.id}
+                    className={on ? "chip on" : "chip"}
+                    onClick={async () => {
+                      await toggle(detail.summary.name, a.id, on, detail.summary.enabledIn);
+                      await openDetail(detail.summary.name);
+                    }}
+                  >
                     {a.id}
                   </button>
                 );
@@ -383,12 +480,17 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
             ) : (
               <ul className="issues">
                 {detail.issues.map((i, idx) => (
-                  <li key={idx} className={i.level}>[{i.level}] {i.message}</li>
+                  <li key={idx} className={i.level}>
+                    [{i.level}] {i.message}
+                  </li>
                 ))}
               </ul>
             )}
             <label>信息</label>
-            <p className="meta-line">来源 {detail.summary.source} · 更新于 {detail.summary.updatedAt.slice(0, 19).replace("T", " ")}</p>
+            <p className="meta-line">
+              来源 {detail.summary.source} · 更新于{" "}
+              {detail.summary.updatedAt.slice(0, 19).replace("T", " ")}
+            </p>
           </aside>
         </div>
       )}
