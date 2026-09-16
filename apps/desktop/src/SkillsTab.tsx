@@ -37,7 +37,9 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
       .catch(() => {});
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshKey 为刻意多带的依赖，用作刷新触发器，effect 本身不消费
   useEffect(load, [load, refreshKey]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshKey 为刻意多带的依赖，用作刷新触发器，effect 本身不消费
   useEffect(loadCatalog, [loadCatalog, refreshKey]);
 
   /** 更新过滤条件，同时清空批量选择，避免选中项被过滤隐藏后误操作。 */
@@ -480,6 +482,7 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
             ) : (
               <ul className="issues">
                 {detail.issues.map((i, idx) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: lint issue 列表无稳定 ID，随详情面板整体重渲染，index 作 key 可接受
                   <li key={idx} className={i.level}>
                     [{i.level}] {i.message}
                   </li>

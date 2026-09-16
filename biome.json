@@ -48,12 +48,6 @@
             "noLabelWithoutControl": "off",
             "noStaticElementInteractions": "off",
             "useKeyWithClickEvents": "off"
-          },
-          "suspicious": {
-            "noArrayIndexKey": "off"
-          },
-          "correctness": {
-            "useExhaustiveDependencies": "off"
           }
         }
       }

@@ -19,6 +19,7 @@ export default function App() {
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
   const updates = useUpdates();
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshKey 为刻意多带的依赖，用作刷新触发器，effect 本身不消费
   useEffect(() => {
     api
       .meta()

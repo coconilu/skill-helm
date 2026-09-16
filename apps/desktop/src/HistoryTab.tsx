@@ -9,6 +9,7 @@ export default function HistoryTab({ refreshKey }: { refreshKey: number }) {
     events: HistoryEvent[];
   } | null>(null);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshKey 为刻意多带的依赖，用作刷新触发器，effect 本身不消费
   useEffect(() => {
     api
       .history()
@@ -50,6 +51,7 @@ export default function HistoryTab({ refreshKey }: { refreshKey: number }) {
         </thead>
         <tbody>
           {data.events.map((e, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: 历史事件为只追加的日志行，无稳定 ID，整表随刷新整体重渲染，index 作 key 可接受
             <tr key={i}>
               <td className="mono">{e.time.slice(0, 19).replace("T", " ")}</td>
               <td>{e.type}</td>
