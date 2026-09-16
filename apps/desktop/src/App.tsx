@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { check, type Update } from "@tauri-apps/plugin-updater";
 import { api } from "./api";
 import type { DoctorIssue, Meta } from "./types";
 import SkillsTab from "./SkillsTab";
 import MarketTab from "./MarketTab";
 import HistoryTab from "./HistoryTab";
+import AboutPanel from "./AboutPanel";
+import { dismiss, install, shouldShowToast, startPolling, useUpdates } from "./updates";
 
 type Tab = "skills" | "market" | "history";
 
@@ -14,42 +15,20 @@ export default function App() {
   const [doctorIssues, setDoctorIssues] = useState<DoctorIssue[]>([]);
   const [fatal, setFatal] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
-  const [update, setUpdate] = useState<Update | null>(null);
-  const [updateState, setUpdateState] = useState<"idle" | "busy" | "error">("idle");
+  const updates = useUpdates();
 
   useEffect(() => {
     api.meta().then(setMeta).catch((e: Error) => setFatal(e.message));
     api.doctor().then((r) => setDoctorIssues(r.issues)).catch(() => setDoctorIssues([]));
   }, [refreshKey]);
 
-  // 启动时检查一次，此后每 30 分钟轮询；离线或检查失败不打扰用户
-  useEffect(() => {
-    let cancelled = false;
-    const run = () =>
-      check()
-        .then((u) => {
-          if (!cancelled && u) setUpdate(u);
-        })
-        .catch(() => {});
-    run();
-    const timer = setInterval(run, 30 * 60 * 1000);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, []);
+  // 应用级更新轮询：启动一次，此后每 30 分钟；状态在 updates 模块共享
+  useEffect(() => startPolling(), []);
 
-  const installUpdate = useCallback(async () => {
-    if (!update) return;
-    setUpdateState("busy");
-    try {
-      // Windows NSIS：下载完成后安装器接管，自动关闭并重启到新版本
-      await update.downloadAndInstall();
-    } catch {
-      setUpdateState("error");
-    }
-  }, [update]);
+  const showToast = shouldShowToast(updates);
+  const installBusy = updates.installStatus === "downloading" || updates.installStatus === "installing";
 
   if (fatal) {
     return (
@@ -72,7 +51,7 @@ export default function App() {
         <nav className="tabs">
           {(["skills", "market", "history"] as Tab[]).map((t) => (
             <button key={t} className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>
-              {t === "skills" ? "技能" : t === "market" ? "市场" : "历史"}
+              {t === "skills" ? "技能" : t === "market" ? "市场" : t === "history" ? "历史" : t}
             </button>
           ))}
         </nav>
@@ -82,24 +61,49 @@ export default function App() {
             ⚠ {doctorIssues.length} 项待处理
           </span>
         )}
+        <button className="about-btn" title="关于 Skill Helm" onClick={() => setAboutOpen(true)}>
+          关于
+        </button>
       </header>
       <main className={tab}>
         {tab === "skills" && <SkillsTab meta={meta} refresh={refresh} refreshKey={refreshKey} />}
         {tab === "market" && <MarketTab refresh={refresh} />}
         {tab === "history" && <HistoryTab refreshKey={refreshKey} />}
       </main>
-      {update && (
-        <div className="update-toast">
+      {showToast && updates.availableVersion && (
+        <div className="update-toast" role="status">
           <div className="update-toast-text">
-            发现新版本 <b>v{update.version}</b>（当前 v{update.currentVersion}）
-            {updateState === "busy" && <div className="update-toast-sub">正在下载更新…</div>}
-            {updateState === "error" && <div className="update-toast-sub error">下载失败，请重试</div>}
+            发现新版本 <b className="mono">v{updates.availableVersion}</b>
+            {updates.currentVersion && (
+              <span className="update-toast-sub">当前 v{updates.currentVersion}</span>
+            )}
+            {updates.installStatus === "downloading" && (
+              <div className="update-toast-sub">正在下载更新…</div>
+            )}
+            {updates.installStatus === "installing" && (
+              <div className="update-toast-sub">正在安装更新…</div>
+            )}
+            {updates.installStatus === "error" && (
+              <div className="update-toast-sub error">更新失败，可从「关于」重试</div>
+            )}
           </div>
-          <button onClick={installUpdate} disabled={updateState === "busy"}>
-            立即更新
+          {updates.installStatus !== "error" && (
+            <button type="button" className="primary" onClick={() => void install()} disabled={installBusy}>
+              立即更新
+            </button>
+          )}
+          <button
+            type="button"
+            className="update-toast-close"
+            aria-label={`关闭 v${updates.availableVersion} 更新提示`}
+            title="关闭提示（同版本不再弹出）"
+            onClick={dismiss}
+          >
+            ×
           </button>
         </div>
       )}
+      {aboutOpen && <AboutPanel onClose={() => setAboutOpen(false)} />}
     </div>
   );
 }
