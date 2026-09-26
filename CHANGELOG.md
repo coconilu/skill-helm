@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.8（2026-09-26）
+
+- feat(sync): 新增私有 Git 仓库同步（bind/unbind/status/push/pull + 版本号）
+
 ## v0.1.7（2026-09-26）
 
 - refactor(desktop): 移除「我的技能」顶部的收编栏 UI
