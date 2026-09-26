@@ -60,4 +60,38 @@ describe("cli e2e", () => {
     expect(code).not.toBe(0);
     expect(JSON.parse(stdout).error).toMatch(/不存在/);
   });
+
+  it("thirdparty 登记后 doctor 不再报 unmanaged，unregister 后恢复", () => {
+    fs.mkdirSync(path.join(env.skillsDirFor("codex"), "chatcut-e2e"), { recursive: true });
+    fs.writeFileSync(
+      path.join(env.skillsDirFor("codex"), "chatcut-e2e", "SKILL.md"),
+      "---\nname: chatcut-e2e\ndescription: 第三方 e2e 测试 skill\n---\n\n# chatcut-e2e\n",
+      "utf8",
+    );
+
+    const scan = JSON.parse(run("thirdparty", "scan", "--json"));
+    expect(scan).toContainEqual({ name: "chatcut-e2e", adapterId: "codex", managedBy: "chatcut" });
+
+    const registered = JSON.parse(
+      run("thirdparty", "register", "--manager", "chatcut", "--all", "--json"),
+    );
+    expect(registered.registered.map((r: { name: string }) => r.name)).toEqual(["chatcut-e2e"]);
+
+    const issues = JSON.parse(run("doctor", "--json")).issues;
+    expect(issues.filter((i: { type: string }) => i.type === "unmanaged")).toEqual([]);
+
+    const list = JSON.parse(run("thirdparty", "list", "--json"));
+    expect(list).toHaveLength(1);
+    expect(list[0].name).toBe("chatcut-e2e");
+    expect(list[0].manager.upgrade.commands).toEqual([]);
+
+    const removed = JSON.parse(run("thirdparty", "unregister", "chatcut-e2e", "--json"));
+    expect(removed.removed).toEqual(["chatcut-e2e"]);
+    const issuesAfter = JSON.parse(run("doctor", "--json")).issues;
+    expect(
+      issuesAfter.some(
+        (i: { type: string; name: string }) => i.type === "unmanaged" && i.name === "chatcut-e2e",
+      ),
+    ).toBe(true);
+  });
 });

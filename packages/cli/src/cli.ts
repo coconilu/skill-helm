@@ -22,6 +22,14 @@ const HELP = `skill-helm — Agent 无关的 Skill 管理
   group <name> --set g1,g2
   concepts list | show <topic> | sync
   history init <path> | list [--name n] [--limit k] | status
+  thirdparty managers                        列出第三方托管方及升级方式（含可复制命令）
+  thirdparty scan [--manager m]              扫描可登记的第三方 skill（按托管方前缀匹配）
+  thirdparty list [--manager m]              已登记的第三方 skill 清单
+  thirdparty register --manager m [--names a,b | --all] [--adapter id]
+                                             批量登记（只管理不收编：不搬移目录、不改写文件）
+  thirdparty unregister <name[,name2] | --all>
+                                             移除登记（目录保留）
+  thirdparty versions                        best-effort 显示各托管方当前/最新版本
   search <query> [--limit n]               在 GitHub 上按描述搜索 Skill 仓库
   install <owner/repo> [--skill name|all]  从 GitHub 仓库安装 Skill 进库存
   serve [--port n]                         启动本地 HTTP API（桌面端/浏览器用，仅回环）
@@ -327,6 +335,124 @@ function main(argv: string[]): void {
           throw new Error(`未知 history 子命令: ${sub}（支持 init / list / status）`);
         }
         return;
+      }
+      case "thirdparty": {
+        const { values, positionals } = parse(rest, {
+          manager: { type: "string" },
+          names: { type: "string" },
+          all: { type: "boolean", default: false },
+          adapter: { type: "string" },
+        });
+        const managedBy = str(values.manager);
+        const sub = positionals[0] ?? "list";
+        if (sub === "managers") {
+          const managers = core.listManagers();
+          if (values.json) printJson(managers);
+          else {
+            for (const m of managers) {
+              process.stdout.write(`${m.id} — ${m.label}\n  ${m.description}\n`);
+              process.stdout.write(`  升级: ${m.upgrade.description}\n`);
+              for (const c of m.upgrade.commands) process.stdout.write(`  $ ${c}\n`);
+              if (m.upgrade.manual) process.stdout.write(`  手动: ${m.upgrade.manual}\n`);
+              if (m.upgrade.versionHint) process.stdout.write(`  版本: ${m.upgrade.versionHint}\n`);
+            }
+          }
+          return;
+        }
+        if (sub === "scan") {
+          const candidates = core
+            .scanThirdParty()
+            .filter((c) => !managedBy || c.managedBy === managedBy);
+          if (values.json) printJson(candidates);
+          else if (candidates.length === 0) process.stdout.write("没有发现可登记的第三方 skill\n");
+          else {
+            process.stdout.write(
+              table(
+                ["名称", "托管方", "适配器"],
+                candidates.map((c) => [c.name, c.managedBy, c.adapterId]),
+              ) +
+                "\n\n用 thirdparty register --manager <m> [--names ... | --all] 登记（不搬移目录）\n",
+            );
+          }
+          return;
+        }
+        if (sub === "list") {
+          const entries = core.listThirdParty({ managedBy });
+          if (values.json) printJson(entries);
+          else if (entries.length === 0) process.stdout.write("尚未登记任何第三方 skill\n");
+          else {
+            process.stdout.write(
+              table(
+                ["名称", "托管方", "适配器", "目录", "登记于"],
+                entries.map((e) => [
+                  e.name,
+                  e.managedBy,
+                  e.adapterId,
+                  e.exists ? "在" : "缺失",
+                  e.registeredAt.slice(0, 10),
+                ]),
+              ) + "\n",
+            );
+          }
+          return;
+        }
+        if (sub === "register") {
+          if (!managedBy) throw new Error("缺少 --manager（如 --manager chatcut）");
+          const result = core.registerThirdParty({
+            managedBy,
+            names: csv(values.names),
+            all: Boolean(values.all),
+            adapterId: str(values.adapter),
+          });
+          if (values.json) printJson(result);
+          else {
+            for (const r of result.registered)
+              process.stdout.write(`✓ 已登记 ${r.name}（托管方 ${r.managedBy}，${r.adapterId}）\n`);
+            for (const s of result.skipped)
+              process.stdout.write(`= 跳过 ${s.name} — ${s.reason}\n`);
+          }
+          return;
+        }
+        if (sub === "unregister") {
+          const all = Boolean(values.all);
+          const names = all
+            ? core.listThirdParty().map((e) => e.name)
+            : (csv(positionals[1]) ?? []);
+          if (!all && names.length === 0) throw new Error("缺少 <name>（可逗号分隔多个）或 --all");
+          const result = core.unregisterThirdParty(names);
+          if (values.json) printJson(result);
+          else {
+            for (const n of result.removed) process.stdout.write(`✓ 已移除登记 ${n}（目录保留）\n`);
+            for (const n of result.missing) process.stdout.write(`? 未登记 ${n}\n`);
+          }
+          return;
+        }
+        if (sub === "versions") {
+          const versions = core.probeManagerVersions();
+          if (values.json) printJson(versions);
+          else {
+            process.stdout.write(
+              table(
+                ["托管方", "当前版本", "最新版本"],
+                core
+                  .listManagers()
+                  .map((m) => [
+                    m.id,
+                    versions[m.id]?.current ?? "未知",
+                    versions[m.id]?.latest ?? "未知",
+                  ]),
+              ) + "\n",
+            );
+            for (const m of core.listManagers()) {
+              if (m.upgrade.versionHint)
+                process.stdout.write(`${m.id}: ${m.upgrade.versionHint}\n`);
+            }
+          }
+          return;
+        }
+        throw new Error(
+          `未知 thirdparty 子命令: ${sub}（支持 managers / scan / list / register / unregister / versions）`,
+        );
       }
       case "search": {
         const { values, positionals } = parse(rest, { limit: { type: "string" } });

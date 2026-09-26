@@ -16,7 +16,8 @@ const HISTORY_README = `# Skill Helm 历史项目
 这个目录是 Skill Helm 的可选持久化后端，完全归你所有：
 
 - \`events.ndjson\`：一行一个 JSON 事件，按时间追加。事件类型：
-  create / update / adopt / enable / disable / remove / install / init / history-init
+  create / update / adopt / enable / disable / remove / install / init / history-init /
+  thirdparty-register / thirdparty-unregister
 - 事件字段：\`time\`（ISO 时间）、\`type\`、\`name\`（Skill 名）、\`detail\`（附加信息）
 - 平台只追加、不改写、不删除；你可以随时 \`git init\` 把它变成仓库，获得完整的版本历史
 - 不想要了：删掉这个目录，并在 \`~/.skill-helm/config.json\` 移除 \`history\` 字段即可
