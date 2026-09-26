@@ -35,6 +35,17 @@ export interface Registry {
   groups: Record<string, { description?: string; categories?: string[] }>;
   /** 旧版 registry.json 无此字段，加载时补空对象。 */
   thirdParty: Record<string, ThirdPartyEntry>;
+  /** Git 同步绑定（sync 命令）；旧版 registry.json 无此字段，加载时保持 undefined。 */
+  sync?: SyncBinding;
+}
+
+/** 与私有 Git 远端同步的绑定状态，随 registry.json 一起同步。 */
+export interface SyncBinding {
+  remoteUrl: string;
+  /** 单调递增的同步版本号，与库存根目录 SYNC.json 一致；每次 push +1。 */
+  version: number;
+  lastSyncAt?: string;
+  lastSyncRev?: string;
 }
 
 export type LinkState = "ok" | "missing" | "broken" | "conflict" | "foreign";

@@ -30,6 +30,11 @@ const HELP = `skill-helm — Agent 无关的 Skill 管理
   thirdparty unregister <name[,name2] | --all>
                                              移除登记（目录保留）
   thirdparty versions                        best-effort 显示各托管方当前/最新版本
+  sync bind <url>                          绑定私有 Git 远端（认证走本机 git 凭据；已绑定时换绑）
+  sync unbind                              解除绑定（保留本地数据与 .git 历史）
+  sync status                              绑定状态、远端可达性与本地↔远端版本（vM ↔ vN）
+  sync push                                推送 skills/registry/concepts，版本号 +1；远端有新提交时拒绝
+  sync pull                                拉取远端（仅快进合并，成功后跑 doctor）；本地有未推送提交时拒绝
   search <query> [--limit n]               在 GitHub 上按描述搜索 Skill 仓库
   install <owner/repo> [--skill name|all]  从 GitHub 仓库安装 Skill 进库存
   serve [--port n]                         启动本地 HTTP API（桌面端/浏览器用，仅回环）
@@ -453,6 +458,94 @@ function main(argv: string[]): void {
         throw new Error(
           `未知 thirdparty 子命令: ${sub}（支持 managers / scan / list / register / unregister / versions）`,
         );
+      }
+      case "sync": {
+        const { values, positionals } = parse(rest, {});
+        const sub = positionals[0] ?? "status";
+        runAsync(Boolean(values.json), async () => {
+          if (sub === "bind") {
+            const result = await core.bindSync(need(positionals[1], "<url>"));
+            if (values.json) printJson(result);
+            else {
+              process.stdout.write(
+                result.rebound
+                  ? `已换绑远端: ${result.remoteUrl}（原: ${result.previousUrl}）\n`
+                  : `已绑定远端: ${result.remoteUrl}\n`,
+              );
+              process.stdout.write(`本地版本: v${result.version}（首次推送后开始递增）\n`);
+            }
+            return;
+          }
+          if (sub === "unbind") {
+            const result = await core.unbindSync();
+            if (values.json) printJson(result);
+            else
+              process.stdout.write(
+                `已解除绑定: ${result.remoteUrl}（本地数据与 .git 历史均保留）\n`,
+              );
+            return;
+          }
+          if (sub === "status") {
+            const status = await core.syncStatus();
+            if (values.json) printJson(status);
+            else if (!status.bound)
+              process.stdout.write("未绑定（sync bind <url> 可绑定私有 Git 远端）\n");
+            else {
+              const lines = [`绑定:     ${status.remoteUrl}`];
+              if (status.remoteReachable === false) {
+                lines.push(`远端:     不可达（${status.error}）`);
+              } else {
+                lines.push("远端:     可达");
+                lines.push(
+                  `版本:     本地 v${status.localVersion} ↔ 远端 ${
+                    status.remoteVersion === null || status.remoteVersion === undefined
+                      ? "（空）"
+                      : `v${status.remoteVersion}`
+                  }`,
+                );
+                const { ahead = 0, behind = 0 } = status;
+                lines.push(
+                  "提交:     " +
+                    (ahead === 0 && behind === 0 ? "已同步" : `本地领先 ${ahead} / 落后 ${behind}`),
+                );
+              }
+              process.stdout.write(lines.join("\n") + "\n");
+            }
+            return;
+          }
+          if (sub === "push") {
+            const result = await core.syncPush();
+            if (values.json) printJson(result);
+            else if (result.pushed)
+              process.stdout.write(
+                `已推送 v${result.version}${result.rev ? `（提交 ${result.rev.slice(0, 7)}）` : ""}${result.reason ? ` — ${result.reason}` : ""}\n`,
+              );
+            else process.stdout.write(`${result.reason}（当前 v${result.version}）\n`);
+            return;
+          }
+          if (sub === "pull") {
+            const result = await core.syncPull();
+            if (values.json) printJson(result);
+            else {
+              if (result.pulled)
+                process.stdout.write(
+                  `已更新到 v${result.version}（提交 ${result.rev?.slice(0, 7) ?? "-"}）\n`,
+                );
+              else process.stdout.write(`${result.reason}（当前 v${result.version}）\n`);
+              if (result.doctorIssues.length === 0) process.stdout.write("doctor: 一切正常\n");
+              else {
+                process.stdout.write("doctor 发现问题:\n");
+                for (const i of result.doctorIssues)
+                  process.stdout.write(
+                    `  [${i.type}] ${[i.adapter, i.name].filter(Boolean).join(":")} — ${i.message}${i.fixed ? "（已修复）" : ""}\n`,
+                  );
+              }
+            }
+            return;
+          }
+          throw new Error(`未知 sync 子命令: ${sub}（支持 bind / unbind / status / push / pull）`);
+        });
+        return;
       }
       case "search": {
         const { values, positionals } = parse(rest, { limit: { type: "string" } });

@@ -14,6 +14,7 @@ export const paths = {
   skills: () => path.join(storeHome(), "skills"),
   registry: () => path.join(storeHome(), "registry.json"),
   registryTmp: () => path.join(storeHome(), "registry.json.tmp"),
+  syncJson: () => path.join(storeHome(), "SYNC.json"),
   lock: () => path.join(storeHome(), "registry.lock"),
   concepts: () => path.join(storeHome(), "concepts"),
   adapters: () => path.join(storeHome(), "adapters"),
