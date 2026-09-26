@@ -277,9 +277,6 @@ select:focus,
 textarea:focus {
   outline: 1px solid var(--accent);
 }
-.search-input {
-  flex: 1;
-}
 .adopt-input {
   width: 320px;
 }
@@ -639,9 +636,6 @@ code {
   margin: 120px auto;
   text-align: center;
   color: var(--text-dim);
-}
-.candidates td {
-  background: var(--bg-soft);
 }
 
 /* 第三方 tab：托管方子标签 + 说明头 + skill 卡片 */

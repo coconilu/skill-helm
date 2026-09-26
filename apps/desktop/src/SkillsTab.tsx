@@ -326,7 +326,7 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
             {skills.length === 0 && (
               <tr>
                 <td colSpan={5} className="empty">
-                  暂无 Skill——用上方收编、市场安装，或让 Agent 创建一个
+                  暂无 Skill——用上方收编，或让 Agent 创建一个
                 </td>
               </tr>
             )}

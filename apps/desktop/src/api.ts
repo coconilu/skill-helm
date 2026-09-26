@@ -2,9 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type {
   DoctorIssue,
   HistoryEvent,
-  InstallResult,
   ManagerVersionInfo,
-  MarketCandidate,
   Meta,
   SkillDetail,
   SkillSummary,
@@ -94,9 +92,6 @@ export const api = {
       "/api/adopt",
       { path },
     ),
-  search: (q: string) => call<MarketCandidate[]>("GET", "/api/search" + qs({ q })),
-  install: (repo: string, skill?: string) =>
-    call<InstallResult>("POST", "/api/install", skill ? { repo, skill } : { repo }),
   doctor: () => call<{ issues: DoctorIssue[] }>("GET", "/api/doctor"),
   history: () =>
     call<{ enabled: boolean; path?: string; events: HistoryEvent[] }>(

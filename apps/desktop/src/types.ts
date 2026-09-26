@@ -41,25 +41,6 @@ export interface DoctorIssue {
   fixed: boolean;
 }
 
-export interface MarketCandidate {
-  source: string;
-  repo: string;
-  description: string;
-  stars: number;
-  url: string;
-}
-
-export interface RepoSkill {
-  name: string;
-  relativeDir: string;
-  description: string;
-}
-
-export interface InstallResult {
-  installed: { name: string; issues: LintIssue[] }[];
-  candidates?: RepoSkill[];
-}
-
 export interface HistoryEvent {
   time: string;
   type: string;
