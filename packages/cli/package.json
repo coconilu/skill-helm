@@ -1,6 +1,6 @@
 {
   "name": "skill-helm",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": true,
   "description": "Skill Helm 命令行：人与 Agent 共用的 Skill 管理入口",
   "bin": {
