@@ -614,3 +614,180 @@ code {
 .candidates td {
   background: var(--bg-soft);
 }
+
+/* 第三方 tab：托管方子标签 + 说明头 + skill 卡片 */
+.tp-intro {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.tp-subtabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.tp-subtabs .chip {
+  padding: 5px 14px;
+  font-size: 13px;
+}
+.tp-count {
+  margin-left: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.tp-subtabs .chip.on .tp-count {
+  color: var(--accent);
+}
+.tp-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.tp-head {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+}
+.tp-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.tp-title-row h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.tp-versions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.tp-versions b {
+  color: var(--text);
+  font-weight: 600;
+}
+.tp-check-btn {
+  padding: 2px 10px;
+  font-size: 12px;
+  margin-left: 8px;
+}
+.tp-desc {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+.tp-hint {
+  margin: 4px 0 0;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+.tp-upgrade {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+}
+.tp-upgrade-title {
+  color: var(--text-dim);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.tp-upgrade p {
+  margin: 4px 0;
+  font-size: 13px;
+}
+.cmd-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.cmd-row code {
+  padding: 5px 10px;
+  font-size: 13px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.copy-cmd {
+  padding: 3px 12px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.copy-cmd.copied {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+.tp-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+.tp-card {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tp-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.badge {
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.ok-badge {
+  color: var(--ok);
+  border: 1px solid var(--ok);
+}
+.missing-badge {
+  color: #e6b450;
+  border: 1px solid #e6b450;
+}
+.tp-card-desc {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.tp-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+.tp-card-meta .chip {
+  margin-right: 0;
+}
+.tp-card-version {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+.tp-candidates {
+  background: var(--bg-soft);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.tp-candidate {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.dim {
+  color: var(--text-dim);
+}
