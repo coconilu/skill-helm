@@ -21,7 +21,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:* ws://localhost:1420; img-src 'self' data:"
+      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:* ws://localhost:1420 https://registry.npmjs.org; img-src 'self' data:"
     }
   },
   "bundle": {

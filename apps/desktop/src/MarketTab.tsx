@@ -34,7 +34,9 @@ export default function MarketTab({ refresh }: { refresh: () => void }) {
         return;
       }
       setCandidates({ ...candidates, [repo]: [] });
-      tell(`已安装 ${r.installed.map((s) => s.name).join(", ")}（默认禁用，到「技能」页启用试用）`);
+      tell(
+        `已安装 ${r.installed.map((s) => s.name).join(", ")}（默认禁用，到「我的技能」页启用试用）`,
+      );
       refresh();
     } catch (e) {
       tell((e as Error).message);
