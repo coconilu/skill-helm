@@ -197,7 +197,6 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
     setNewGroup("");
   };
 
-  const categories = [...new Set(catalog.flatMap((s) => s.categories))];
   const groups = [...new Set(catalog.flatMap((s) => s.groups))];
   const groupCount = (g: string) => catalog.filter((s) => s.groups.includes(g)).length;
   const statusCount = (st: "enabled" | "disabled") => catalog.filter((s) => s.status === st).length;
@@ -207,24 +206,6 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
   return (
     <div className="page skills-page">
       <div className="skills-content">
-        <div className="toolbar">
-          <button
-            className={!filter.category ? "chip on" : "chip"}
-            onClick={() => updateFilter({ ...filter, category: undefined })}
-          >
-            全部
-          </button>
-          {categories.map((c) => (
-            <button
-              key={c}
-              className={filter.category === c ? "chip on" : "chip"}
-              onClick={() => updateFilter({ ...filter, category: c })}
-            >
-              {c}
-            </button>
-          ))}
-          <span className="spacer" />
-        </div>
         {notice && <div className="toast">{notice}</div>}
         <table className="grid">
           <colgroup>

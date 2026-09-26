@@ -246,22 +246,6 @@ main.skills {
   padding: 16px 20px;
 }
 
-.toolbar {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.toolbar .spacer {
-  flex: 1;
-}
-.toolbar .chip {
-  padding: 4px 12px;
-  font-size: 13px;
-  margin-right: 0;
-}
-
 input,
 select,
 textarea {

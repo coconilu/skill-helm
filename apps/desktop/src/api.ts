@@ -51,7 +51,6 @@ function qs(params: Record<string, string | undefined>): string {
 }
 
 export interface SkillFilter {
-  category?: string;
   group?: string;
   status?: string;
 }
