@@ -3,10 +3,14 @@ import type {
   DoctorIssue,
   HistoryEvent,
   InstallResult,
+  ManagerVersionInfo,
   MarketCandidate,
   Meta,
   SkillDetail,
   SkillSummary,
+  ThirdPartyCandidate,
+  ThirdPartyEntryView,
+  ThirdPartyManager,
 } from "./types";
 
 let originPromise: Promise<string> | null = null;
@@ -98,5 +102,18 @@ export const api = {
     call<{ enabled: boolean; path?: string; events: HistoryEvent[] }>(
       "GET",
       "/api/history?limit=200",
+    ),
+  thirdpartyManagers: () => call<ThirdPartyManager[]>("GET", "/api/thirdparty/managers"),
+  thirdpartyList: (managedBy?: string) =>
+    call<ThirdPartyEntryView[]>("GET", "/api/thirdparty" + qs({ managedBy })),
+  /** best-effort 托管方版本探测；服务端同步跑本地命令，可能各花数秒。 */
+  thirdpartyVersions: () =>
+    call<Record<string, ManagerVersionInfo>>("GET", "/api/thirdparty/versions"),
+  thirdpartyScan: () => call<ThirdPartyCandidate[]>("GET", "/api/thirdparty/scan"),
+  thirdpartyRegister: (managedBy: string, names?: string[]) =>
+    call<{ registered: ThirdPartyEntryView[]; skipped: { name: string; reason: string }[] }>(
+      "POST",
+      "/api/thirdparty/register",
+      names ? { managedBy, names } : { managedBy, all: true },
     ),
 };

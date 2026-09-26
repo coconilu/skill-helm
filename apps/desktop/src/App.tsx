@@ -2,12 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "./api";
 import type { DoctorIssue, Meta } from "./types";
 import SkillsTab from "./SkillsTab";
+import ThirdPartyTab from "./ThirdPartyTab";
 import MarketTab from "./MarketTab";
 import HistoryTab from "./HistoryTab";
 import AboutPanel from "./AboutPanel";
 import { dismiss, install, shouldShowToast, startPolling, useUpdates } from "./updates";
 
-type Tab = "skills" | "market" | "history";
+type Tab = "skills" | "thirdparty" | "market" | "history";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("skills");
@@ -60,9 +61,15 @@ export default function App() {
           {meta && <span className="store">{meta.store}</span>}
         </div>
         <nav className="tabs">
-          {(["skills", "market", "history"] as Tab[]).map((t) => (
+          {(["skills", "thirdparty", "market", "history"] as Tab[]).map((t) => (
             <button key={t} className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>
-              {t === "skills" ? "技能" : t === "market" ? "市场" : t === "history" ? "历史" : t}
+              {t === "skills"
+                ? "我的技能"
+                : t === "thirdparty"
+                  ? "第三方"
+                  : t === "market"
+                    ? "市场"
+                    : "历史"}
             </button>
           ))}
         </nav>
@@ -80,6 +87,7 @@ export default function App() {
       </header>
       <main className={tab}>
         {tab === "skills" && <SkillsTab meta={meta} refresh={refresh} refreshKey={refreshKey} />}
+        {tab === "thirdparty" && <ThirdPartyTab refresh={refresh} refreshKey={refreshKey} />}
         {tab === "market" && <MarketTab refresh={refresh} />}
         {tab === "history" && <HistoryTab refreshKey={refreshKey} />}
       </main>

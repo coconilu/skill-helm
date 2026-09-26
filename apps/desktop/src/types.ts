@@ -64,3 +64,45 @@ export interface HistoryEvent {
   name?: string;
   detail?: Record<string, unknown>;
 }
+
+/** 托管方升级方式（对应 core 的 ManagerUpgrade）。 */
+export interface ManagerUpgrade {
+  description: string;
+  /** 可直接复制执行的升级命令；为空表示没有 CLI 途径。 */
+  commands: string[];
+  manual?: string;
+  versionHint?: string;
+}
+
+/** 第三方托管方元数据（对应 core 的 ThirdPartyManager）。 */
+export interface ThirdPartyManager {
+  id: string;
+  label: string;
+  description: string;
+  prefixes: string[];
+  upgrade: ManagerUpgrade;
+}
+
+/** 已登记的第三方 skill 条目（对应 core 的 ThirdPartyEntryView）。 */
+export interface ThirdPartyEntryView {
+  name: string;
+  adapterId: string;
+  managedBy: string;
+  category: string;
+  registeredAt: string;
+  manager: ThirdPartyManager;
+  exists: boolean;
+}
+
+/** 托管方版本探测结果（对应 core 的 ManagerVersionInfo）；null 表示未知。 */
+export interface ManagerVersionInfo {
+  current: string | null;
+  latest: string | null;
+}
+
+/** 扫描发现的未登记第三方 skill 目录。 */
+export interface ThirdPartyCandidate {
+  name: string;
+  adapterId: string;
+  managedBy: string;
+}
