@@ -18,11 +18,23 @@ export interface SkillMeta {
   updatedAt: string;
 }
 
+/** 第三方托管登记：只管理不收编（不搬移/不改写目录），由外部工具（托管方）自管升级。 */
+export interface ThirdPartyEntry {
+  /** 所在适配器根目录的 adapter id。 */
+  adapterId: string;
+  /** 托管方 id（见 core 的 THIRD_PARTY_MANAGERS：chatcut / lark / hyperframes）。 */
+  managedBy: string;
+  category: string;
+  registeredAt: string;
+}
+
 export interface Registry {
   version: number;
   skills: Record<string, SkillMeta>;
   categories: Record<string, { description?: string }>;
   groups: Record<string, { description?: string; categories?: string[] }>;
+  /** 旧版 registry.json 无此字段，加载时补空对象。 */
+  thirdParty: Record<string, ThirdPartyEntry>;
 }
 
 export type LinkState = "ok" | "missing" | "broken" | "conflict" | "foreign";

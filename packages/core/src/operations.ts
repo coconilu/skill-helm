@@ -369,6 +369,8 @@ export function doctor(fix: boolean): DoctorIssue[] {
       const p = path.join(a.skillsDir, d);
       const lst = fs.lstatSync(p);
       if (!lst.isDirectory() || lst.isSymbolicLink() || regFinal.skills[d]) continue;
+      // 已登记的第三方条目只管理不收编，不计入「待处理」；unregistered 检测不受影响
+      if (regFinal.thirdParty[d]?.adapterId === a.id) continue;
       issues.push({
         type: "unmanaged",
         name: d,
