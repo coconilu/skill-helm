@@ -32,7 +32,8 @@ export default function App() {
         setMeta(m);
         try {
           const appV = await getVersion();
-          if (appV && m.version && m.version !== appV) {
+          // version 为 "unknown"（读不到 CLI package.json）时不比较，避免渲染误导性的 vunknown 提示
+          if (appV && m.version && m.version !== "unknown" && m.version !== appV) {
             setVersionMismatch({ cli: m.version, app: appV });
           } else {
             setVersionMismatch(null);
