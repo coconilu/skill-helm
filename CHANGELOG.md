@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.6（2026-09-26）
+
+- feat(desktop): 移除市场模块
+
 ## v0.1.5（2026-09-26）
 
 - fix(desktop): 修复 round 1 评审两条 P2——空 origin 静默启动与 vunknown 误报
