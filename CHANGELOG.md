@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.5（2026-09-26）
+
+- fix(desktop): 修复 round 1 评审两条 P2——空 origin 静默启动与 vunknown 误报
+
 ## v0.1.4（2026-09-26）
 
 - fix(desktop): 更新检查在系统代理环境下直连超时——补开 reqwest system-proxy 并加前端检查看门狗
