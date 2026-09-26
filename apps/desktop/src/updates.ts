@@ -26,10 +26,14 @@ export interface UpdatesState {
 
 const DISMISS_KEY = "skill-helm.update.dismissed";
 const CHECK_TIMEOUT_MS = 30_000;
+/** 看门狗：略大于插件侧 30s 超时，兜底 Promise 永不落定的场景 */
+const CHECK_WATCHDOG_MS = 35_000;
 const POLL_INTERVAL_MS = 30 * 60 * 1000;
 
 let handle: Update | null = null;
 let checkInFlight = false;
+/** 检查代际：看门狗触发后自增，迟到的检查结果凭代际不匹配被丢弃 */
+let checkGeneration = 0;
 /** 安装锁：在首个 await 前同步置位，防止连点或双入口重复下载/安装 */
 let installLocked = false;
 /** 本任务已成功安装，等待重启，不再重复安装 */
@@ -77,41 +81,61 @@ export async function runCheck(): Promise<void> {
   // 去重；安装期间不让检查替换句柄
   if (checkInFlight || installLocked) return;
   checkInFlight = true;
+  const generation = ++checkGeneration;
   setState({ checkStatus: "checking", checkError: null });
-  try {
-    const next = await checkUpdater({ timeout: CHECK_TIMEOUT_MS });
-    if (next === null) {
-      if (!installLocked) {
-        releaseHandle(handle);
-        handle = null;
-      }
-      setState({
-        availableVersion: null,
-        currentVersion: null,
-        checkStatus: "latest",
-        checkError: null,
-      });
-    } else if (installLocked) {
-      // 安装进行中：不让检查替换句柄或版本信息，只记录检查结果
-      setState({ checkStatus: "available", checkError: null });
-    } else {
-      releaseHandle(handle);
-      handle = next;
-      setState({
-        availableVersion: next.version,
-        currentVersion: next.currentVersion,
-        checkStatus: "available",
-        checkError: null,
-      });
-    }
-  } catch (e) {
+
+  // 看门狗兜底：插件调用已传 30s 超时，但若 Tauri IPC / 插件 Promise 永不落定，
+  // 35s 后强制复位状态并放出去重锁，保证 UI 永不永久停留在 checking；
+  // 迟到的检查结果由代际标记丢弃，不会覆盖看门狗写入的错误状态。
+  const task = checkUpdater({ timeout: CHECK_TIMEOUT_MS })
+    .then((next) => ({ kind: "done" as const, next }))
+    .catch((error: unknown) => ({ kind: "failed" as const, error }));
+  const watchdog = new Promise<{ kind: "timeout" }>((resolve) => {
+    setTimeout(() => resolve({ kind: "timeout" }), CHECK_WATCHDOG_MS);
+  });
+
+  const outcome = await Promise.race([task, watchdog]);
+
+  if (outcome.kind === "timeout") {
+    // 检查仍未返回：作废本次代际并复位去重锁，允许用户重试
+    checkGeneration++;
+    checkInFlight = false;
+    setState({ checkStatus: "error", checkError: "检查超时，请重试" });
+    return;
+  }
+
+  if (generation !== checkGeneration) return; // 看门狗已处置，丢弃迟到结果
+
+  checkInFlight = false;
+  if (outcome.kind === "failed") {
     // 检查失败保留此前发现的可用更新，同时明确本次检查失败
     setState({
       checkStatus: "error",
-      checkError: e instanceof Error ? e.message : String(e),
+      checkError: outcome.error instanceof Error ? outcome.error.message : String(outcome.error),
     });
-  } finally {
-    checkInFlight = false;
+  } else if (outcome.next === null) {
+    if (!installLocked) {
+      releaseHandle(handle);
+      handle = null;
+    }
+    setState({
+      availableVersion: null,
+      currentVersion: null,
+      checkStatus: "latest",
+      checkError: null,
+    });
+  } else if (installLocked) {
+    // 安装进行中：不让检查替换句柄或版本信息，只记录检查结果
+    setState({ checkStatus: "available", checkError: null });
+  } else {
+    releaseHandle(handle);
+    handle = outcome.next;
+    setState({
+      availableVersion: outcome.next.version,
+      currentVersion: outcome.next.currentVersion,
+      checkStatus: "available",
+      checkError: null,
+    });
   }
 }
 
