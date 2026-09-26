@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.7（2026-09-26）
+
+- refactor(desktop): 移除「我的技能」顶部的收编栏 UI
+
 ## v0.1.6（2026-09-26）
 
 - feat(desktop): 移除市场模块
