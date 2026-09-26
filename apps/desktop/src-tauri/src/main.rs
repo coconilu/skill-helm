@@ -59,9 +59,12 @@ fn spawn_sidecar() -> (Child, String) {
             cmd.arg("serve");
             configure(&mut cmd);
             if let Ok(child) = cmd.spawn() {
-                return read_origin(child);
+                let (child, origin) = read_origin(child);
+                if !origin.is_empty() {
+                    return (child, origin);
+                }
+                // 显式入口起了但没报 origin（多半立即退出）：继续尝试 PATH 兜底
             }
-            // 显式入口起不来：继续尝试 PATH 兜底
         }
     }
 
@@ -69,11 +72,17 @@ fn spawn_sidecar() -> (Child, String) {
     cmd.args(["/c", "skill-helm", "serve"]);
     configure(&mut cmd);
     if let Ok(child) = cmd.spawn() {
-        return read_origin(child);
+        let (mut child, origin) = read_origin(child);
+        if !origin.is_empty() {
+            return (child, origin);
+        }
+        // cmd.exe 自身 spawn 成功但 skill-helm 不在 PATH 时，报错写进已置空的 stderr、
+        // 子进程立即退出，read_origin 读到 EOF 得到空 origin——同样按解析失败处理。
+        let _ = child.kill();
     }
 
     panic!(
-        "无法启动 sidecar：SKILL_HELM_CLI（未设置或指向的入口不可执行）与 PATH 中的 skill-helm 均解析失败。\
+        "无法启动 sidecar：SKILL_HELM_CLI（未设置、指向的入口不可执行或未报告 origin）与 PATH 中的 skill-helm 均解析失败。\
          修复方式二选一：① 设置环境变量 SKILL_HELM_CLI 指向本仓库 packages/cli/dist/cli.js；\
          ② 运行 pnpm --dir packages/cli link --global 后重启应用"
     );
