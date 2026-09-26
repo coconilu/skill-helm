@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { getVersion } from "@tauri-apps/api/app";
 import { api } from "./api";
 import type { DoctorIssue, Meta } from "./types";
 import SkillsTab from "./SkillsTab";
@@ -17,6 +18,9 @@ export default function App() {
   const [fatal, setFatal] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [aboutOpen, setAboutOpen] = useState(false);
+  /** sidecar CLI 与 App 版本不一致的对账结果；null 表示一致或无法判定 */
+  const [versionMismatch, setVersionMismatch] = useState<{ cli: string; app: string } | null>(null);
+  const [mismatchDismissed, setMismatchDismissed] = useState(false);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
   const updates = useUpdates();
 
@@ -24,7 +28,20 @@ export default function App() {
   useEffect(() => {
     api
       .meta()
-      .then(setMeta)
+      .then(async (m) => {
+        setMeta(m);
+        try {
+          const appV = await getVersion();
+          if (appV && m.version && m.version !== appV) {
+            setVersionMismatch({ cli: m.version, app: appV });
+          } else {
+            setVersionMismatch(null);
+          }
+        } catch {
+          // 非 Tauri 环境拿不到应用版本，跳过对账
+          setVersionMismatch(null);
+        }
+      })
       .catch((e: Error) => setFatal(e.message));
     api
       .doctor()
@@ -85,6 +102,23 @@ export default function App() {
           关于
         </button>
       </header>
+      {versionMismatch && !mismatchDismissed && (
+        <div className="version-banner" role="alert">
+          <span>
+            sidecar CLI v{versionMismatch.cli} 与 App v{versionMismatch.app}
+            版本不一致，可能来自旧链接：<code>pnpm --dir packages/cli link --global</code>
+            重新链接后重启应用
+          </span>
+          <button
+            type="button"
+            className="version-banner-close"
+            aria-label="关闭版本不一致提示"
+            onClick={() => setMismatchDismissed(true)}
+          >
+            ×
+          </button>
+        </div>
+      )}
       <main className={tab}>
         {tab === "skills" && <SkillsTab meta={meta} refresh={refresh} refreshKey={refreshKey} />}
         {tab === "thirdparty" && <ThirdPartyTab refresh={refresh} refreshKey={refreshKey} />}

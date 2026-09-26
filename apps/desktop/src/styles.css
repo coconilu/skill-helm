@@ -137,6 +137,35 @@ body {
   border: none;
 }
 
+/* sidecar 与 App 版本不一致的一次性警告条（可关闭，不阻塞功能） */
+.version-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  font-size: 13px;
+  background: rgba(230, 180, 80, 0.12);
+  border-bottom: 1px solid #e6b450;
+  color: #e6b450;
+}
+.version-banner code {
+  color: inherit;
+}
+.version-banner-close {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+.version-banner-close:hover {
+  color: var(--text);
+  border: none;
+}
+
 /* 关于面板 */
 .about-drawer {
   width: 380px;

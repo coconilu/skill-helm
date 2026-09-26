@@ -26,6 +26,8 @@ export interface SkillDetail {
 }
 
 export interface Meta {
+  /** CLI 自身版本（packages/cli/package.json），用于 sidecar 与 App 的版本对账。 */
+  version: string;
   adapters: { id: string; covers: string[] }[];
   store: string;
   history: { enabled: boolean; path?: string; events: number };
