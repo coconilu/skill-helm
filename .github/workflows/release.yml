@@ -56,11 +56,21 @@ jobs:
           # 里的 packages/cli/package.json，CLI 版本从未进入 release 提交，发布后仍是旧版本。
           # 改为从 bump 脚本源码解析 versionedPaths 作为唯一清单，add 后校验无遗漏残留，
           # 未来脚本新增文件而清单漏跟时直接报错退出。
-          mapfile -t paths < <(node -e '
+          # 解析失败必须立刻失败，不能用进程替换（node 退出码会丢失，静默漏文件）
+          if ! node_output=$(node -e '
             const src = require("node:fs").readFileSync(".github/scripts/bump-version.mjs", "utf8");
             const body = src.match(/const versionedPaths = \[([\s\S]*?)\n\];/)[1];
             console.log([...body.matchAll(/"([^"]+)"/g)].map((m) => m[1]).join("\n"));
-          ')
+          '); then
+            echo "::error::解析 bump-version.mjs 的 versionedPaths 失败（脚本声明形态可能已变，需同步更新本步骤解析逻辑）"
+            exit 1
+          fi
+          mapfile -t paths <<< "$node_output"
+          # 防解析退化：versionedPaths 至少含 App 与 CLI 两个版本文件，条目过少视为解析失败
+          if [ "${#paths[@]}" -lt 2 ]; then
+            echo "::error::versionedPaths 解析结果异常（仅 ${#paths[@]} 条，bump 清单不完整）"
+            exit 1
+          fi
           paths+=("CHANGELOG.md")
           git add "${paths[@]}"
           # 校验清单完整性：仍有未暂存的 bump 产出文件说明 add 清单漏了文件
