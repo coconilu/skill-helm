@@ -4,11 +4,16 @@ import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 
 const bump = process.argv[2];
-const pkgPath = "apps/desktop/package.json";
-const tauriPath = "apps/desktop/src-tauri/tauri.conf.json";
+// 版本号必须全量同步的文件：App（apps/desktop）+ Tauri 配置 + CLI sidecar。
+// CLI 版本缺一处不同步，App 与 sidecar 版本对账就会误报（v0.1.5、v0.1.6 两次手工对齐救场的教训）
+const versionedPaths = [
+  "apps/desktop/package.json",
+  "apps/desktop/src-tauri/tauri.conf.json",
+  "packages/cli/package.json",
+];
 const changelogPath = "CHANGELOG.md";
 
-const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+const pkg = JSON.parse(readFileSync(versionedPaths[0], "utf8"));
 const [major, minor, patch] = pkg.version.split(".").map(Number);
 const next =
   bump === "major"
@@ -21,12 +26,12 @@ const next =
 if (!next) throw new Error(`未知 bump 类型: ${bump}（支持 patch/minor/major）`);
 const version = next.join(".");
 
-// package.json 与 tauri.conf.json 版本号必须保持同步
-pkg.version = version;
-writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
-const tauri = JSON.parse(readFileSync(tauriPath, "utf8"));
-tauri.version = version;
-writeFileSync(tauriPath, JSON.stringify(tauri, null, 2) + "\n");
+// 三个文件的缩进均为 2 空格，JSON.stringify 重写后与原格式逐字节一致（除版本行），不产生 diff 噪音
+for (const filePath of versionedPaths) {
+  const json = JSON.parse(readFileSync(filePath, "utf8"));
+  json.version = version;
+  writeFileSync(filePath, JSON.stringify(json, null, 2) + "\n");
+}
 
 // 收集自上一个 tag 以来的提交，生成 changelog 条目
 let range = null;
