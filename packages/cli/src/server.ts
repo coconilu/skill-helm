@@ -8,6 +8,8 @@ export interface ServerInfo {
   origin: string;
   pid: number;
   startedAt: string;
+  /** 关闭 HTTP server（测试收尾用；JSON 序列化时自动省略，不影响 server.json）。 */
+  close: () => Promise<void>;
 }
 
 function sendJson(res: http.ServerResponse, status: number, data: unknown): void {
@@ -300,7 +302,7 @@ export async function startServer(opts: { port?: number } = {}): Promise<ServerI
       if (seg[0] === "api" && seg[1] === "sync") {
         const action = seg[2];
         // GET /api/sync/status —— 绑定状态 + 远端可达性 + 版本/ahead/behind + 上次同步时间
-        if (req.method === "GET" && !action) {
+        if (req.method === "GET" && action === "status") {
           const status = await withSyncLock(() => core.syncStatus());
           const lastSyncAt = core.loadRegistry().sync?.lastSyncAt;
           return sendJson(res, 200, { ...status, lastSyncAt });
@@ -337,6 +339,13 @@ export async function startServer(opts: { port?: number } = {}): Promise<ServerI
         origin: `http://127.0.0.1:${port}`,
         pid: process.pid,
         startedAt: new Date().toISOString(),
+        close: () => {
+          // 先断掉 keep-alive 连接，否则 close 会等 idle socket 直到超时
+          server.closeAllConnections();
+          return new Promise((resolve, reject) =>
+            server.close((err) => (err ? reject(err) : resolve())),
+          );
+        },
       };
       fs.writeFileSync(
         path.join(core.paths.home(), "server.json"),
