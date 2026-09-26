@@ -8,7 +8,13 @@ const LOCK_TIMEOUT_MS = 5000;
 const LOCK_STALE_MS = 30000;
 
 export function emptyRegistry(): Registry {
-  return { version: REGISTRY_VERSION, skills: {}, categories: {}, groups: {} };
+  return {
+    version: REGISTRY_VERSION,
+    skills: {},
+    categories: {},
+    groups: {},
+    thirdParty: {},
+  };
 }
 
 export function loadRegistry(): Registry {
@@ -19,6 +25,7 @@ export function loadRegistry(): Registry {
   parsed.skills ??= {};
   parsed.categories ??= {};
   parsed.groups ??= {};
+  parsed.thirdParty ??= {};
   return parsed;
 }
 

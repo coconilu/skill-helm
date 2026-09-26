@@ -199,6 +199,54 @@ export async function startServer(opts: { port?: number } = {}): Promise<ServerI
       if (req.method === "GET" && url.pathname === "/api/doctor") {
         return sendJson(res, 200, { issues: core.doctor(url.searchParams.get("fix") === "1") });
       }
+      // GET /api/thirdparty/managers
+      if (req.method === "GET" && url.pathname === "/api/thirdparty/managers") {
+        return sendJson(res, 200, core.listManagers());
+      }
+      // GET /api/thirdparty/scan
+      if (req.method === "GET" && url.pathname === "/api/thirdparty/scan") {
+        const managedBy = url.searchParams.get("managedBy") ?? undefined;
+        return sendJson(
+          res,
+          200,
+          core.scanThirdParty().filter((c) => !managedBy || c.managedBy === managedBy),
+        );
+      }
+      // GET /api/thirdparty/versions —— best-effort，可能各花数秒，拿不到返回 null
+      if (req.method === "GET" && url.pathname === "/api/thirdparty/versions") {
+        return sendJson(res, 200, core.probeManagerVersions());
+      }
+      // GET /api/thirdparty?managedBy=&adapterId=
+      if (req.method === "GET" && url.pathname === "/api/thirdparty") {
+        return sendJson(
+          res,
+          200,
+          core.listThirdParty({
+            managedBy: url.searchParams.get("managedBy") ?? undefined,
+            adapterId: url.searchParams.get("adapterId") ?? undefined,
+          }),
+        );
+      }
+      // POST /api/thirdparty/register {managedBy, names? | all?, adapterId?}
+      if (req.method === "POST" && url.pathname === "/api/thirdparty/register") {
+        const body = await readBody(req);
+        if (typeof body.managedBy !== "string" || !body.managedBy)
+          return sendJson(res, 400, { error: "缺少 managedBy" });
+        const result = core.registerThirdParty({
+          managedBy: body.managedBy,
+          names: asStringList(body.names),
+          all: body.all === true,
+          adapterId: typeof body.adapterId === "string" ? body.adapterId : undefined,
+        });
+        return sendJson(res, 200, result);
+      }
+      // POST /api/thirdparty/unregister {names: [...]}
+      if (req.method === "POST" && url.pathname === "/api/thirdparty/unregister") {
+        const body = await readBody(req);
+        const names = asStringList(body.names);
+        if (names.length === 0) return sendJson(res, 400, { error: "缺少 names" });
+        return sendJson(res, 200, core.unregisterThirdParty(names));
+      }
       // GET /api/history?limit=
       if (req.method === "GET" && url.pathname === "/api/history") {
         const status = core.historyStatus();
