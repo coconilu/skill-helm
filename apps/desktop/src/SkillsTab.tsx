@@ -14,7 +14,6 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
   const [filter, setFilter] = useState<SkillFilter>({});
   const [detail, setDetail] = useState<SkillDetail | null>(null);
   const [notice, setNotice] = useState("");
-  const [adoptPath, setAdoptPath] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [editCats, setEditCats] = useState("");
   const [editGroups, setEditGroups] = useState("");
@@ -156,20 +155,6 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
     }
   };
 
-  const adopt = async () => {
-    if (!adoptPath.trim()) return;
-    try {
-      const r = await api.adopt(adoptPath.trim());
-      tell(
-        `已收编 ${r.summary.name}${r.conflicts.length ? `；但 ${r.conflicts.map((c) => c.adapter).join("、")} 下已存在同名目录，请手动处理` : ""}`,
-      );
-      setAdoptPath("");
-      reload();
-    } catch (e) {
-      tell((e as Error).message);
-    }
-  };
-
   const allVisibleSelected = skills.length > 0 && skills.every((s) => selected.has(s.name));
 
   const toggleAll = () => {
@@ -239,14 +224,6 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
             </button>
           ))}
           <span className="spacer" />
-          <input
-            className="adopt-input"
-            placeholder="收编路径，如 ~/.codex/skills/xxx"
-            value={adoptPath}
-            onChange={(e) => setAdoptPath(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && adopt()}
-          />
-          <button onClick={adopt}>收编</button>
         </div>
         {notice && <div className="toast">{notice}</div>}
         <table className="grid">
@@ -326,7 +303,7 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
             {skills.length === 0 && (
               <tr>
                 <td colSpan={5} className="empty">
-                  暂无 Skill——用上方收编，或让 Agent 创建一个
+                  暂无 Skill——用 skill-helm adopt 收编，或让 Agent 创建一个
                 </td>
               </tr>
             )}

@@ -277,9 +277,6 @@ select:focus,
 textarea:focus {
   outline: 1px solid var(--accent);
 }
-.adopt-input {
-  width: 320px;
-}
 
 button {
   background: var(--bg-hover);

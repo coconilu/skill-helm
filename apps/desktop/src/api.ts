@@ -86,12 +86,6 @@ export const api = {
       { target },
     ),
   copy: (text: string) => call<{ copied: boolean }>("POST", "/api/clipboard", { text }),
-  adopt: (path: string) =>
-    call<{ summary: SkillSummary; conflicts: { adapter: string; path: string }[] }>(
-      "POST",
-      "/api/adopt",
-      { path },
-    ),
   doctor: () => call<{ issues: DoctorIssue[] }>("GET", "/api/doctor"),
   history: () =>
     call<{ enabled: boolean; path?: string; events: HistoryEvent[] }>(
