@@ -41,11 +41,57 @@ export interface DoctorIssue {
   fixed: boolean;
 }
 
-export interface HistoryEvent {
-  time: string;
-  type: string;
-  name?: string;
-  detail?: Record<string, unknown>;
+/** 同步状态（对应 core 的 SyncStatus；lastSyncAt 由 server 从 registry 合并）。 */
+export interface SyncStatus {
+  bound: boolean;
+  remoteUrl?: string;
+  remoteReachable?: boolean;
+  /** 探测失败原因（remoteReachable=false 时）。 */
+  error?: string;
+  /** 本地版本（SYNC.json）。 */
+  localVersion?: number;
+  /** 远端版本；null = 远端还没有任何提交。 */
+  remoteVersion?: number | null;
+  /** 本地领先（未推送）提交数。 */
+  ahead?: number;
+  /** 本地落后（未拉取）提交数。 */
+  behind?: number;
+  /** 上次同步时间（ISO）。 */
+  lastSyncAt?: string;
+}
+
+/** 绑定/换绑结果（对应 core 的 SyncBindResult）。 */
+export interface SyncBindResult {
+  bound: true;
+  remoteUrl: string;
+  version: number;
+  /** true = 对已绑定状态再次 bind（换绑）。 */
+  rebound: boolean;
+  previousUrl?: string;
+}
+
+/** 解除绑定结果（对应 core 的 SyncUnbindResult）；本地数据与 .git 历史保留。 */
+export interface SyncUnbindResult {
+  unbound: true;
+  remoteUrl?: string;
+  keptLocal: true;
+}
+
+/** 推送结果（对应 core 的 SyncPushResult）。 */
+export interface SyncPushResult {
+  pushed: boolean;
+  version: number;
+  rev?: string;
+  reason?: string;
+}
+
+/** 拉取结果（对应 core 的 SyncPullResult）。 */
+export interface SyncPullResult {
+  pulled: boolean;
+  version: number;
+  rev?: string;
+  reason?: string;
+  doctorIssues: DoctorIssue[];
 }
 
 /** 托管方升级方式（对应 core 的 ManagerUpgrade）。 */

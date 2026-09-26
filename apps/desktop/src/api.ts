@@ -1,11 +1,15 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
   DoctorIssue,
-  HistoryEvent,
   ManagerVersionInfo,
   Meta,
   SkillDetail,
   SkillSummary,
+  SyncBindResult,
+  SyncPullResult,
+  SyncPushResult,
+  SyncStatus,
+  SyncUnbindResult,
   ThirdPartyCandidate,
   ThirdPartyEntryView,
   ThirdPartyManager,
@@ -86,11 +90,11 @@ export const api = {
     ),
   copy: (text: string) => call<{ copied: boolean }>("POST", "/api/clipboard", { text }),
   doctor: () => call<{ issues: DoctorIssue[] }>("GET", "/api/doctor"),
-  history: () =>
-    call<{ enabled: boolean; path?: string; events: HistoryEvent[] }>(
-      "GET",
-      "/api/history?limit=200",
-    ),
+  syncStatus: () => call<SyncStatus>("GET", "/api/sync/status"),
+  syncBind: (url: string) => call<SyncBindResult>("POST", "/api/sync/bind", { url }),
+  syncUnbind: () => call<SyncUnbindResult>("POST", "/api/sync/unbind"),
+  syncPush: () => call<SyncPushResult>("POST", "/api/sync/push"),
+  syncPull: () => call<SyncPullResult>("POST", "/api/sync/pull"),
   thirdpartyManagers: () => call<ThirdPartyManager[]>("GET", "/api/thirdparty/managers"),
   thirdpartyList: (managedBy?: string) =>
     call<ThirdPartyEntryView[]>("GET", "/api/thirdparty" + qs({ managedBy })),

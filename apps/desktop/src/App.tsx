@@ -4,11 +4,11 @@ import { api } from "./api";
 import type { DoctorIssue, Meta } from "./types";
 import SkillsTab from "./SkillsTab";
 import ThirdPartyTab from "./ThirdPartyTab";
-import HistoryTab from "./HistoryTab";
+import BackupTab from "./BackupTab";
 import AboutPanel from "./AboutPanel";
 import { dismiss, install, shouldShowToast, startPolling, useUpdates } from "./updates";
 
-type Tab = "skills" | "thirdparty" | "history";
+type Tab = "skills" | "thirdparty" | "backup";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("skills");
@@ -78,9 +78,9 @@ export default function App() {
           {meta && <span className="store">{meta.store}</span>}
         </div>
         <nav className="tabs">
-          {(["skills", "thirdparty", "history"] as Tab[]).map((t) => (
+          {(["skills", "thirdparty", "backup"] as Tab[]).map((t) => (
             <button key={t} className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>
-              {t === "skills" ? "我的技能" : t === "thirdparty" ? "第三方" : "历史"}
+              {t === "skills" ? "我的技能" : t === "thirdparty" ? "第三方" : "备份"}
             </button>
           ))}
         </nav>
@@ -116,7 +116,7 @@ export default function App() {
       <main className={tab}>
         {tab === "skills" && <SkillsTab meta={meta} refresh={refresh} refreshKey={refreshKey} />}
         {tab === "thirdparty" && <ThirdPartyTab refresh={refresh} refreshKey={refreshKey} />}
-        {tab === "history" && <HistoryTab refreshKey={refreshKey} />}
+        {tab === "backup" && <BackupTab refreshKey={refreshKey} />}
       </main>
       {showToast && updates.availableVersion && (
         <div className="update-toast" role="status">

@@ -795,3 +795,56 @@ code {
 .dim {
   color: var(--text-dim);
 }
+
+/* 备份 tab：同步状态卡片 */
+.sync-hint code {
+  font-size: 12px;
+}
+.sync-url-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sync-label {
+  color: var(--text-dim);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.sync-url-input {
+  flex: 1;
+  min-width: 260px;
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 13px;
+}
+.sync-url-row .mono {
+  word-break: break-all;
+}
+.sync-versions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.sync-versions b {
+  color: var(--text);
+  font-weight: 600;
+}
+.sync-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sync-feedback {
+  margin: 0;
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+.sync-feedback.ok {
+  color: var(--ok);
+}
+.sync-feedback.error {
+  color: var(--danger);
+}

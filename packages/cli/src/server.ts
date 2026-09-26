@@ -36,6 +36,33 @@ function asStringList(v: unknown): string[] {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
 }
 
+/** 带预期 HTTP 状态码的错误，sendError 按它返回。 */
+class HttpError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+/** sync 操作请求级串行化：同一时刻只允许一个 sync 操作，并发请求直接 409。 */
+let syncBusy = false;
+async function withSyncLock<T>(fn: () => Promise<T>): Promise<T> {
+  if (syncBusy) throw new HttpError(409, "已有同步任务进行中，请稍后再试");
+  syncBusy = true;
+  try {
+    return await fn();
+  } finally {
+    syncBusy = false;
+  }
+}
+
+function sendError(res: http.ServerResponse, err: unknown): void {
+  const status = err instanceof HttpError ? err.status : 500;
+  sendJson(res, status, { error: err instanceof Error ? err.message : String(err) });
+}
+
 /** CLI 自身版本：读取 dist 同级的 package.json，供桌面端做 sidecar 与 App 的版本对账。 */
 function cliVersion(): string {
   try {
@@ -269,13 +296,36 @@ export async function startServer(opts: { port?: number } = {}): Promise<ServerI
           events: core.listHistory({ limit }),
         });
       }
+      // /api/sync/* —— M17 core 同步能力的薄包装，请求级串行化
+      if (seg[0] === "api" && seg[1] === "sync") {
+        const action = seg[2];
+        // GET /api/sync/status —— 绑定状态 + 远端可达性 + 版本/ahead/behind + 上次同步时间
+        if (req.method === "GET" && !action) {
+          const status = await withSyncLock(() => core.syncStatus());
+          const lastSyncAt = core.loadRegistry().sync?.lastSyncAt;
+          return sendJson(res, 200, { ...status, lastSyncAt });
+        }
+        // POST /api/sync/bind {url} —— 绑定；已绑定时再次提交即换绑
+        if (req.method === "POST" && action === "bind") {
+          const body = await readBody(req);
+          const url2 = String(body.url ?? "").trim();
+          if (!url2) return sendJson(res, 400, { error: "缺少 url" });
+          return sendJson(res, 200, await withSyncLock(() => core.bindSync(url2)));
+        }
+        if (req.method === "POST" && action === "unbind")
+          return sendJson(res, 200, await withSyncLock(() => core.unbindSync()));
+        if (req.method === "POST" && action === "push")
+          return sendJson(res, 200, await withSyncLock(() => core.syncPush()));
+        if (req.method === "POST" && action === "pull")
+          return sendJson(res, 200, await withSyncLock(() => core.syncPull()));
+      }
       // GET /api/concepts
       if (req.method === "GET" && url.pathname === "/api/concepts") {
         return sendJson(res, 200, core.listConcepts());
       }
       sendJson(res, 404, { error: `未知路由: ${req.method} ${url.pathname}` });
     } catch (err) {
-      sendJson(res, 500, { error: err instanceof Error ? err.message : String(err) });
+      sendError(res, err);
     }
   });
 
