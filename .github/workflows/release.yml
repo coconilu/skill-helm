@@ -52,7 +52,23 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
-          git add apps/desktop/package.json apps/desktop/src-tauri/tauri.conf.json CHANGELOG.md
+          # v0.1.7 事故：这里 git add 清单写死 3 个文件，漏了 bump-version.mjs versionedPaths
+          # 里的 packages/cli/package.json，CLI 版本从未进入 release 提交，发布后仍是旧版本。
+          # 改为从 bump 脚本源码解析 versionedPaths 作为唯一清单，add 后校验无遗漏残留，
+          # 未来脚本新增文件而清单漏跟时直接报错退出。
+          mapfile -t paths < <(node -e '
+            const src = require("node:fs").readFileSync(".github/scripts/bump-version.mjs", "utf8");
+            const body = src.match(/const versionedPaths = \[([\s\S]*?)\n\];/)[1];
+            console.log([...body.matchAll(/"([^"]+)"/g)].map((m) => m[1]).join("\n"));
+          ')
+          paths+=("CHANGELOG.md")
+          git add "${paths[@]}"
+          # 校验清单完整性：仍有未暂存的 bump 产出文件说明 add 清单漏了文件
+          if ! git diff --quiet -- "${paths[@]}"; then
+            echo "::error::git add 清单遗漏了 bump 产出的文件："
+            git diff --name-only -- "${paths[@]}"
+            exit 1
+          fi
           git commit -m "chore: release v$VERSION"
           git push -u origin "$BRANCH"
           gh pr create --title "chore: release v$VERSION" --body "自动版本号升级（release 工作流）" --base main --head "$BRANCH"
