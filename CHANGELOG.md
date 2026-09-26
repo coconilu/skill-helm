@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.9（2026-09-26）
+
+- fix(server): /api/sync/status 路由失配导致 404，BackupTab 挂载即不可用（评审 P1）
+
 ## v0.1.8（2026-09-26）
 
 - feat(sync): 新增私有 Git 仓库同步（bind/unbind/status/push/pull + 版本号）
