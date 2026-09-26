@@ -36,6 +36,16 @@ function asStringList(v: unknown): string[] {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
 }
 
+/** CLI 自身版本：读取 dist 同级的 package.json，供桌面端做 sidecar 与 App 的版本对账。 */
+function cliVersion(): string {
+  try {
+    const raw = fs.readFileSync(path.resolve(__dirname, "..", "package.json"), "utf8");
+    return (JSON.parse(raw) as { version?: string }).version ?? "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
 /** 写入系统剪贴板（文本先 base64 再经命令行传入，避免控制台代码页乱码；后台静默）。 */
 function setClipboardText(text: string): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -101,6 +111,7 @@ export async function startServer(opts: { port?: number } = {}): Promise<ServerI
       // GET /api/meta
       if (req.method === "GET" && url.pathname === "/api/meta") {
         return sendJson(res, 200, {
+          version: cliVersion(),
           adapters: core.loadAdapters().map((a) => ({ id: a.id, covers: a.covers ?? [] })),
           store: core.paths.home(),
           history: core.historyStatus(),

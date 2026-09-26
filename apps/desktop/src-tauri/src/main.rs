@@ -17,10 +17,9 @@ fn api_origin(state: tauri::State<ApiOrigin>) -> String {
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
-fn spawn_sidecar() -> (Child, String) {
-    let mut cmd = Command::new("cmd");
-    cmd.args(["/c", "skill-helm", "serve"])
-        .stdin(Stdio::null())
+/// 统一配置 sidecar 子进程：静默后台、接管 stdout、Windows 上不弹控制台窗口。
+fn configure(cmd: &mut Command) {
+    cmd.stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::null());
     #[cfg(target_os = "windows")]
@@ -28,9 +27,10 @@ fn spawn_sidecar() -> (Child, String) {
         use std::os::windows::process::CommandExt;
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
-    let mut child = cmd
-        .spawn()
-        .expect("无法启动 sidecar：请确认 skill-helm 已在 PATH 中（pnpm --dir packages/cli link --global）");
+}
+
+/// 读取 sidecar stdout 首行的 `SKILL_HELM_API <origin>`。
+fn read_origin(mut child: Child) -> (Child, String) {
     let stdout = child.stdout.take().expect("sidecar stdout 不可用");
     let mut reader = BufReader::new(stdout);
     let mut line = String::new();
@@ -40,6 +40,43 @@ fn spawn_sidecar() -> (Child, String) {
         origin = rest.to_string();
     }
     (child, origin)
+}
+
+/// sidecar 解析顺序：优先环境变量 SKILL_HELM_CLI 显式指定入口（`.js` 用 node 前缀执行，
+/// 其余按可执行文件），未设置或启动失败再回退 PATH 解析 `skill-helm`；两者都失败时
+/// 给出两种修复方式。显式入口用于防止全局 link 指向旧 checkout 的过期 dist。
+fn spawn_sidecar() -> (Child, String) {
+    if let Ok(cli) = std::env::var("SKILL_HELM_CLI") {
+        let cli = cli.trim().to_string();
+        if !cli.is_empty() {
+            let mut cmd = if cli.to_ascii_lowercase().ends_with(".js") {
+                let mut c = Command::new("node");
+                c.arg(&cli);
+                c
+            } else {
+                Command::new(&cli)
+            };
+            cmd.arg("serve");
+            configure(&mut cmd);
+            if let Ok(child) = cmd.spawn() {
+                return read_origin(child);
+            }
+            // 显式入口起不来：继续尝试 PATH 兜底
+        }
+    }
+
+    let mut cmd = Command::new("cmd");
+    cmd.args(["/c", "skill-helm", "serve"]);
+    configure(&mut cmd);
+    if let Ok(child) = cmd.spawn() {
+        return read_origin(child);
+    }
+
+    panic!(
+        "无法启动 sidecar：SKILL_HELM_CLI（未设置或指向的入口不可执行）与 PATH 中的 skill-helm 均解析失败。\
+         修复方式二选一：① 设置环境变量 SKILL_HELM_CLI 指向本仓库 packages/cli/dist/cli.js；\
+         ② 运行 pnpm --dir packages/cli link --global 后重启应用"
+    );
 }
 
 fn kill_process_tree(pid: u32) {
