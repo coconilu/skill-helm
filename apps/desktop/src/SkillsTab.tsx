@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, type SkillFilter } from "./api";
-import type { Meta, SkillDetail, SkillSummary } from "./types";
+import type { EvalRunSummary, Meta, SkillDetail, SkillSummary } from "./types";
+import EvalPanel from "./EvalPanel";
 
 interface Props {
   meta: Meta | null;
@@ -20,6 +21,13 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [newGroup, setNewGroup] = useState("");
   const [pickGroup, setPickGroup] = useState("");
+  const [evalSelection, setEvalSelection] = useState<{
+    names?: string[];
+    all?: boolean;
+    resumeId?: string;
+  } | null>(null);
+  const [latestEval, setLatestEval] = useState<EvalRunSummary | null>(null);
+  const [evalDismissed, setEvalDismissed] = useState("");
 
   const load = useCallback(() => {
     api
@@ -40,6 +48,19 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
   useEffect(load, [load, refreshKey]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: refreshKey 为刻意多带的依赖，用作刷新触发器，effect 本身不消费
   useEffect(loadCatalog, [loadCatalog, refreshKey]);
+
+  useEffect(() => {
+    if (evalSelection) return;
+    const poll = () => {
+      api
+        .evalRuns()
+        .then((runs) => setLatestEval(runs[0] ?? null))
+        .catch(() => {});
+    };
+    poll();
+    const timer = setInterval(poll, 2000);
+    return () => clearInterval(timer);
+  }, [evalSelection]);
 
   /** 更新过滤条件，同时清空批量选择，避免选中项被过滤隐藏后误操作。 */
   const updateFilter = (f: SkillFilter) => {
@@ -207,6 +228,21 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
     <div className="page skills-page">
       <div className="skills-content">
         {notice && <div className="toast">{notice}</div>}
+        <div className="skills-toolbar">
+          <div>
+            <b>我的 Skill</b>
+            <span className="dim">使用本地 Codex 验证实际行为，而不只检查格式</span>
+          </div>
+          <button
+            disabled={selected.size === 0}
+            onClick={() => setEvalSelection({ names: catalog.filter((s) => selected.has(s.name)).map((s) => s.name) })}
+          >
+            评估所选{selected.size > 0 ? `（${selected.size}）` : ""}
+          </button>
+          <button className="primary" disabled={catalog.length === 0} onClick={() => setEvalSelection({ all: true })}>
+            评估全部
+          </button>
+        </div>
         <table className="grid">
           <colgroup>
             <col className="col-check" />
@@ -374,6 +410,26 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
         )}
       </aside>
 
+      {latestEval && !evalSelection && evalDismissed !== latestEval.id + latestEval.status && (
+        <div className="eval-background" role="status">
+          <button onClick={() => setEvalSelection({ resumeId: latestEval.id })}>
+            {["preparing", "queued", "running"].includes(latestEval.status)
+              ? `评估进行中：${latestEval.completedSkills}/${latestEval.skillCount}`
+              : `最近评估：${latestEval.status}`}
+            {latestEval.currentSkill ? ` · ${latestEval.currentSkill}` : ""}
+          </button>
+          <button
+            className="eval-background-close"
+            aria-label="关闭评估通知"
+            onClick={() => setEvalDismissed(latestEval.id + latestEval.status)}
+          >
+            ×
+          </button>
+        </div>
+      )}
+      {evalSelection && (
+        <EvalPanel selection={evalSelection} onClose={() => setEvalSelection(null)} />
+      )}
       {detail && (
         <div className="drawer-mask" onClick={() => setDetail(null)}>
           <aside className="drawer" onClick={(e) => e.stopPropagation()}>
@@ -406,6 +462,9 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
             <div className="row">
               <button className="primary" onClick={saveDetail}>
                 保存
+              </button>
+              <button onClick={() => setEvalSelection({ names: [detail.summary.name] })}>
+                评估
               </button>
               <button className="danger" onClick={removeSkill}>
                 删除

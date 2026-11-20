@@ -125,6 +125,7 @@ function openPath(dir: string, target: "folder" | "code"): void {
  */
 export async function startServer(opts: { port?: number } = {}): Promise<ServerInfo> {
   core.ensureStore();
+  const evalManager = new core.EvalManager();
   const server = http.createServer(async (req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
@@ -145,6 +146,56 @@ export async function startServer(opts: { port?: number } = {}): Promise<ServerI
           store: core.paths.home(),
           history: core.historyStatus(),
         });
+      }
+      // GET /api/evals/environment —— 本地 Codex 与 skill-up 可用性
+      if (req.method === "GET" && url.pathname === "/api/evals/environment") {
+        return sendJson(res, 200, await core.detectEvalEnvironment());
+      }
+      // GET /api/evals/runs?limit=
+      if (req.method === "GET" && url.pathname === "/api/evals/runs") {
+        return sendJson(res, 200, evalManager.list(Number(url.searchParams.get("limit") ?? "30")));
+      }
+      // POST /api/evals/prepare {names? | all?, enabledOnly?}
+      if (req.method === "POST" && url.pathname === "/api/evals/prepare") {
+        const body = await readBody(req);
+        return sendJson(
+          res,
+          200,
+          evalManager.create({
+            names: asStringList(body.names),
+            all: body.all === true,
+            enabledOnly: body.enabledOnly === true,
+          }),
+        );
+      }
+      // /api/evals/runs/<id>[/start|cancel|retry|open]
+      if (seg[0] === "api" && seg[1] === "evals" && seg[2] === "runs" && seg[3]) {
+        const id = seg[3];
+        const action = seg[4];
+        if (req.method === "GET" && !action) return sendJson(res, 200, evalManager.get(id));
+        if (req.method === "POST" && action === "start") {
+          return sendJson(res, 200, await evalManager.start(id));
+        }
+        if (req.method === "POST" && action === "cancel") {
+          return sendJson(res, 200, evalManager.cancel(id));
+        }
+        if (req.method === "POST" && action === "retry") {
+          return sendJson(res, 200, await evalManager.retry(id));
+        }
+        if (req.method === "POST" && action === "open") {
+          openPath(evalManager.reportDir(id), "folder");
+          return sendJson(res, 200, { opened: evalManager.reportDir(id) });
+        }
+      }
+      // GET/POST /api/evals/suites/<name> —— 读取或保存可视化编辑后的用例
+      if (seg[0] === "api" && seg[1] === "evals" && seg[2] === "suites" && seg[3]) {
+        const name = decodeURIComponent(seg[3]);
+        if (req.method === "GET") return sendJson(res, 200, core.readEvalSuite(name));
+        if (req.method === "POST") {
+          const body = await readBody(req);
+          const cases = Array.isArray(body.cases) ? body.cases : [];
+          return sendJson(res, 200, core.saveEvalSuite(name, cases as core.EvalCaseInput[]));
+        }
       }
       // GET /api/skills?category=&group=&status=
       if (req.method === "GET" && url.pathname === "/api/skills") {

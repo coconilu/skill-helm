@@ -37,6 +37,12 @@ const HELP = `skill-helm — Agent 无关的 Skill 管理
   sync pull                                拉取远端（仅快进合并，成功后跑 doctor）；本地有未推送提交时拒绝
   search <query> [--limit n]               在 GitHub 上按描述搜索 Skill 仓库
   install <owner/repo> [--skill name|all]  从 GitHub 仓库安装 Skill 进库存
+  eval env                               检测本地 Codex 与 skill-up
+  eval run [name...] [--all] [--enabled-only]
+                                             准备并执行单个/批量 Skill 评测
+  eval prepare [name...] [--all] [--enabled-only]
+  eval start <run-id> | retry <run-id> | list | show <run-id>
+  eval suite <name>                      查看 Skill 的评测用例
   serve [--port n]                         启动本地 HTTP API（桌面端/浏览器用，仅回环）
   lint <name>
   doctor [--fix]
@@ -85,7 +91,25 @@ function printTargets(results: core.TargetResult[]): boolean {
   return hasError;
 }
 
-/** 异步命令（search/install）的错误出口：与同步路径一致，--json 时 stdout 输出 {"error": ...}。 */
+function printEvalRun(run: core.EvalRun): void {
+  process.stdout.write(
+    `评测任务 ${run.id} — ${run.status}（${run.completedSkills}/${run.skills.length}）\n` +
+      table(
+        ["Skill", "状态", "通过", "失败", "错误", "提升"],
+        run.skills.map((s) => [
+          s.name,
+          s.status,
+          `${s.passed}/${s.caseCount}`,
+          String(s.failed),
+          String(s.errored),
+          s.improvement === undefined ? "-" : `${(s.improvement * 100).toFixed(1)}pp`,
+        ]),
+      ) +
+      "\n",
+  );
+}
+
+/** 异步命令（search/install/eval）的错误出口：与同步路径一致，--json 时 stdout 输出 {"error": ...}。 */
 function runAsync(json: boolean, task: () => Promise<void>): void {
   task().catch((err) => {
     const message = err instanceof Error ? err.message : String(err);
@@ -601,6 +625,93 @@ function main(argv: string[]): void {
                 process.stdout.write(`  lint 提醒: ${s.issues.map((i) => i.message).join("；")}\n`);
             }
           }
+        });
+        return;
+      }
+      case "eval": {
+        const { values, positionals } = parse(rest, {
+          names: { type: "string" },
+          all: { type: "boolean", default: false },
+          "enabled-only": { type: "boolean", default: false },
+        });
+        const sub = positionals[0] ?? "list";
+        runAsync(Boolean(values.json), async () => {
+          const manager = new core.EvalManager();
+          if (sub === "env") {
+            const environment = await core.detectEvalEnvironment();
+            if (values.json) printJson(environment);
+            else {
+              process.stdout.write(
+                `Codex: ${environment.codex.message}\nskill-up: ${environment.skillUp.message}\n`,
+              );
+            }
+            return;
+          }
+          if (sub === "list") {
+            const runs = manager.list();
+            if (values.json) printJson(runs);
+            else
+              process.stdout.write(
+                table(
+                  ["任务", "状态", "Skill 数", "已完成", "创建时间"],
+                  runs.map((r) => [
+                    r.id,
+                    r.status,
+                    String(r.skillCount),
+                    String(r.completedSkills),
+                    r.createdAt,
+                  ]),
+                ) + "\n",
+              );
+            return;
+          }
+          if (sub === "show") {
+            const run = manager.get(need(positionals[1], "<run-id>"));
+            if (values.json) printJson(run);
+            else printEvalRun(run);
+            return;
+          }
+          if (sub === "suite") {
+            const suite = core.readEvalSuite(need(positionals[1], "<name>"));
+            if (values.json) printJson(suite);
+            else
+              process.stdout.write(
+                table(
+                  ["用例", "类型", "标题", "输入"],
+                  suite.cases.map((c) => [c.id, c.kind, c.title, truncate(c.prompt, 50)]),
+                ) + "\n",
+              );
+            return;
+          }
+          if (sub === "prepare" || sub === "run") {
+            const positionalNames = positionals.slice(1);
+            const names = csv(values.names) ?? positionalNames;
+            let run = manager.create({
+              names,
+              all: Boolean(values.all),
+              enabledOnly: Boolean(values["enabled-only"]),
+            });
+            run = await manager.waitForPreparation(run.id);
+            if (sub === "run" && run.status === "draft") {
+              await manager.start(run.id);
+              run = await manager.waitForCompletion(run.id);
+            }
+            if (values.json) printJson(run);
+            else printEvalRun(run);
+            return;
+          }
+          if (sub === "start" || sub === "retry") {
+            const id = need(positionals[1], "<run-id>");
+            if (sub === "start") await manager.start(id);
+            else await manager.retry(id);
+            const run = await manager.waitForCompletion(id);
+            if (values.json) printJson(run);
+            else printEvalRun(run);
+            return;
+          }
+          throw new Error(
+            `未知 eval 子命令: ${sub}（支持 env / run / prepare / start / retry / list / show / suite）`,
+          );
         });
         return;
       }
