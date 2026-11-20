@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.0（2026-11-20）
+
+- feat(eval): 新增本地 Codex 批量 Skill 评测 (#21)
+
 ## v0.1.9（2026-09-26）
 
 - fix(server): /api/sync/status 路由失配导致 404，BackupTab 挂载即不可用（评审 P1）
