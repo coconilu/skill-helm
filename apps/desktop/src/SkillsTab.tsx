@@ -235,11 +235,19 @@ export default function SkillsTab({ meta, refresh, refreshKey }: Props) {
           </div>
           <button
             disabled={selected.size === 0}
-            onClick={() => setEvalSelection({ names: catalog.filter((s) => selected.has(s.name)).map((s) => s.name) })}
+            onClick={() =>
+              setEvalSelection({
+                names: catalog.filter((s) => selected.has(s.name)).map((s) => s.name),
+              })
+            }
           >
             评估所选{selected.size > 0 ? `（${selected.size}）` : ""}
           </button>
-          <button className="primary" disabled={catalog.length === 0} onClick={() => setEvalSelection({ all: true })}>
+          <button
+            className="primary"
+            disabled={catalog.length === 0}
+            onClick={() => setEvalSelection({ all: true })}
+          >
             评估全部
           </button>
         </div>
