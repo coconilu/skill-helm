@@ -13,3 +13,8 @@ export * from "./operations";
 export * from "./market";
 export * from "./thirdparty";
 export * from "./sync";
+export * from "./eval-types";
+export * from "./eval-process";
+export * from "./eval-suite";
+export * from "./eval-report";
+export * from "./eval-manager";

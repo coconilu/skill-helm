@@ -1,6 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
   DoctorIssue,
+  EvalCaseInput,
+  EvalEnvironment,
+  EvalRun,
+  EvalRunSummary,
+  EvalSuite,
   ManagerVersionInfo,
   Meta,
   SkillDetail,
@@ -89,6 +94,19 @@ export const api = {
       { target },
     ),
   copy: (text: string) => call<{ copied: boolean }>("POST", "/api/clipboard", { text }),
+  evalEnvironment: () => call<EvalEnvironment>("GET", "/api/evals/environment"),
+  evalPrepare: (input: { names?: string[]; all?: boolean; enabledOnly?: boolean }) =>
+    call<EvalRun>("POST", "/api/evals/prepare", input),
+  evalRuns: () => call<EvalRunSummary[]>("GET", "/api/evals/runs?limit=10"),
+  evalRun: (id: string) => call<EvalRun>("GET", `/api/evals/runs/${encodeURIComponent(id)}`),
+  evalStart: (id: string) => call<EvalRun>("POST", `/api/evals/runs/${id}/start`),
+  evalCancel: (id: string) => call<EvalRun>("POST", `/api/evals/runs/${id}/cancel`),
+  evalRetry: (id: string) => call<EvalRun>("POST", `/api/evals/runs/${id}/retry`),
+  evalOpen: (id: string) => call<{ opened: string }>("POST", `/api/evals/runs/${id}/open`),
+  evalSuite: (name: string) =>
+    call<EvalSuite>("GET", `/api/evals/suites/${encodeURIComponent(name)}`),
+  evalSaveSuite: (name: string, cases: EvalCaseInput[]) =>
+    call<EvalSuite>("POST", `/api/evals/suites/${encodeURIComponent(name)}`, { cases }),
   doctor: () => call<{ issues: DoctorIssue[] }>("GET", "/api/doctor"),
   syncStatus: () => call<SyncStatus>("GET", "/api/sync/status"),
   syncBind: (url: string) => call<SyncBindResult>("POST", "/api/sync/bind", { url }),

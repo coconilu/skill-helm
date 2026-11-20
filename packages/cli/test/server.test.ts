@@ -3,6 +3,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { setupTestEnv, type TestEnv } from "../../core/test/helpers";
+import { saveEvalSuite, type EvalCaseInput } from "../../core/src";
 import { startServer } from "../src/server";
 
 /**
@@ -37,6 +38,42 @@ async function call(
   });
   return { status: res.status, data: (await res.json()) as Record<string, unknown> };
 }
+
+describe("server /api/evals 路由", () => {
+  it("准备已有用例并返回批量草稿与可编辑 suite", async () => {
+    const created = await call("POST", "/api/skills", {
+      name: "eval-demo",
+      description: "用于验证桌面评测 API 的 Skill",
+    });
+    expect(created.status).toBe(200);
+    const evalCase: EvalCaseInput = {
+      id: "eval-demo-core",
+      title: "核心任务",
+      kind: "core",
+      description: "核心行为",
+      prompt: "完成一个自包含任务",
+      mustContain: [],
+      mustNotContain: [],
+      rubric: "回答准确且完整",
+    };
+    saveEvalSuite("eval-demo", [evalCase]);
+
+    const prepared = await call("POST", "/api/evals/prepare", { names: ["eval-demo"] });
+    expect(prepared.status).toBe(200);
+    const id = prepared.data.id as string;
+    let run = await call("GET", `/api/evals/runs/${id}`);
+    for (let i = 0; i < 20 && run.data.status === "preparing"; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      run = await call("GET", `/api/evals/runs/${id}`);
+    }
+    expect(run.data.status).toBe("draft");
+    expect(run.data.totalCaseRuns).toBe(2);
+
+    const suite = await call("GET", "/api/evals/suites/eval-demo");
+    expect(suite.status).toBe(200);
+    expect(suite.data).toMatchObject({ managed: true });
+  });
+});
 
 describe("server /api/sync 路由", () => {
   it("GET /api/sync/status 返回 200 与绑定状态（路由形状回归）", async () => {

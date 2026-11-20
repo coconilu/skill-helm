@@ -78,7 +78,16 @@ skill-helm doctor                        # 一致性检查
 skill-helm search "视频字幕"              # 按描述在 GitHub 搜 Skill 仓库
 skill-helm install owner/repo --skill xx # 安装进库存，enable 即试用
 skill-helm history init <空目录>          # 可选：开启变更历史记录
+skill-helm eval env                      # 检测本地 Codex 与 skill-up
+skill-helm eval run my-skill              # 生成用例并执行有无 Skill 对照评测
+skill-helm eval run --all --enabled-only  # 串行批量评估全部已启用 Skill
 ```
+
+## Skill 行为评估
+
+桌面端「我的技能」支持评估所选、评估全部和仅已启用范围。评估分为两步：先生成并审核 `evals/` 用例，再由本地 Codex 通过 [skill-up](https://github.com/alibaba/skill-up) 串行执行。每个用例同时运行有无 Skill 两组，报告展示通过率、提升幅度、失败原因与对照输出；支持取消、失败重试和 Markdown 汇总导出。
+
+运行前需要本地 Codex CLI 已登录，并将 `skill-up` 安装到 `PATH`。语义裁判读取 Codex 的 `model` / `model_provider`，也可用 `SKILL_HELM_CODEX_MODEL` 与 `SKILL_HELM_CODEX_PROVIDER` 覆盖。评测任务、日志和 HTML/JSON 报告保存在 `~/.skill-helm/evals/runs/`，不会把运行产物写进 Skill 源目录。已有自定义 `evals/` 可直接执行，但不能被可视化编辑器覆盖。
 
 ## 里程碑
 
@@ -86,7 +95,8 @@ skill-helm history init <空目录>          # 可选：开启变更历史记录
 - M1 ✅ 概念注册表完善 + lint 规则
 - M2 ✅ 可选持久化接口（[issue #1](https://github.com/coconilu/skill-helm/issues/1)）
 - M3 ✅ 市场搜索（[issue #2](https://github.com/coconilu/skill-helm/issues/2)）
-- M4 ⬜ Tauri 桌面端可视化管理（规划中）
+- M4 ✅ Tauri 桌面端可视化管理
+- M5 ✅ 本地 Codex + skill-up 单个/批量行为评估与对照报告
 
 ## 仓库结构
 

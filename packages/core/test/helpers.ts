@@ -23,6 +23,8 @@ export function setupTestEnv(): TestEnv {
   }
   process.env.SKILL_HELM_HOME = home;
   process.env.SKILL_HELM_ADAPTERS_DIR = adaptersDir;
+  process.env.SKILL_HELM_CODEX_MODEL = "test-model";
+  process.env.SKILL_HELM_CODEX_PROVIDER = "openai";
   return {
     root,
     home,
@@ -31,6 +33,8 @@ export function setupTestEnv(): TestEnv {
       fs.rmSync(root, { recursive: true, force: true });
       delete process.env.SKILL_HELM_HOME;
       delete process.env.SKILL_HELM_ADAPTERS_DIR;
+      delete process.env.SKILL_HELM_CODEX_MODEL;
+      delete process.env.SKILL_HELM_CODEX_PROVIDER;
     },
   };
 }

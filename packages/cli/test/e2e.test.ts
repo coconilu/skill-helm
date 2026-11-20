@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupTestEnv, type TestEnv } from "../../core/test/helpers";
+import { saveEvalSuite } from "../../core/src";
 
 const CLI = path.resolve(__dirname, "../dist/cli.js");
 
@@ -59,6 +60,29 @@ describe("cli e2e", () => {
     }
     expect(code).not.toBe(0);
     expect(JSON.parse(stdout).error).toMatch(/不存在/);
+  });
+
+  it("eval prepare 对已有用例生成批量草稿", () => {
+    JSON.parse(run("create", "eval-cli", "--description", "用于测试评测 CLI 的 Skill", "--json"));
+    saveEvalSuite("eval-cli", [
+      {
+        id: "eval-cli-core",
+        title: "核心任务",
+        kind: "core",
+        description: "核心行为",
+        prompt: "完成一个自包含任务",
+        mustContain: [],
+        mustNotContain: [],
+        rubric: "回答准确且完整",
+      },
+    ]);
+    const evalRun = JSON.parse(run("eval", "prepare", "eval-cli", "--json"));
+    expect(evalRun.status).toBe("draft");
+    expect(evalRun.skills[0]).toMatchObject({ name: "eval-cli", status: "ready", caseCount: 1 });
+    expect(evalRun.totalCaseRuns).toBe(2);
+
+    const suite = JSON.parse(run("eval", "suite", "eval-cli", "--json"));
+    expect(suite.cases[0].prompt).toBe("完成一个自包含任务");
   });
 
   it("thirdparty 登记后 doctor 不再报 unmanaged，unregister 后恢复", () => {

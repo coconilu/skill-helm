@@ -29,6 +29,14 @@ Skill Helm 的 Meta-Skill：通过 `skill-helm` CLI 管理 Skill 的全生命周
 3. 用户确认后 `skill-helm install <owner/repo> [--skill name|all] --json` —— 含多个 Skill 的仓库会返回 candidates，需再指定。
 4. 安装后默认未启用：`enable` 即试用，`disable` + `rm` 即清理。
 
+## 评估 Skill 的实际行为
+
+1. `skill-helm eval env --json` —— 检查本地 Codex 是否已登录、skill-up 是否已安装；缺依赖时只给安装引导，不擅自安装。
+2. `skill-helm eval prepare <name> --json` —— 已有 `evals/` 会直接读取；没有时由本地 Codex 生成用例。
+3. 检查用例是否合理，需要修改时编辑库存中的 `evals/`，不要用评估器自动改 SKILL.md。
+4. `skill-helm eval run <name> --json` —— 串行执行有无 Skill 对照评测；批量用 `eval run --all --enabled-only --json`。
+5. 展示通过率、相对无 Skill 的提升和失败原因。评测报告保存在库存的 evals/runs 下，不属于 Skill 源包。
+
 ## 日常管理速查
 
 ```text

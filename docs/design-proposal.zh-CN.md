@@ -72,6 +72,7 @@ docs/
   skills/<name>/        权威副本（SKILL.md + 附属文件）
   registry.json         元数据（唯一状态入口）
   concepts/             从仓库 concepts/ 同步的概念注册表副本
+  evals/runs/<run-id>/  批量评测任务、日志与 HTML/JSON 报告
 ```
 
 `registry.json` 示例：
@@ -148,7 +149,8 @@ docs/
 | M1 | concepts 完善 + lint 规则 + doctor | 存量 Skill 全部通过 lint 或有明确豁免 | ✅ 已完成（2026-08-25） |
 | M2 | 持久化接口（issue #1） | 可选接入空项目记录历史 | ✅ 已完成（2026-08-25，history 命令） |
 | M3 | 市场搜索（issue #2） | 按描述搜索、罗列、下载、试用 | ✅ 已完成（2026-08-25，search/install 命令） |
-| M4 | Tauri 桌面端可视化管理 | 图形界面复用 packages/core，完成查看/启停/收编/搜索 | 🚧 实施中（2026-08-25，issue #3） |
+| M4 | Tauri 桌面端可视化管理 | 图形界面复用 packages/core，完成查看/启停/收编/搜索 | ✅ 已完成 |
+| M5 | Skill 行为评估 | 本地 Codex + skill-up；单个/多选/全部、用例审核、有无 Skill 对照、批量报告 | ✅ 已完成（2026-11-16） |
 
 > M4 实现说明（2026-08-25）：
 >

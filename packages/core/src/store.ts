@@ -18,6 +18,7 @@ export const paths = {
   lock: () => path.join(storeHome(), "registry.lock"),
   concepts: () => path.join(storeHome(), "concepts"),
   adapters: () => path.join(storeHome(), "adapters"),
+  evalRuns: () => path.join(storeHome(), "evals", "runs"),
 };
 
 export function skillDir(name: string): string {
